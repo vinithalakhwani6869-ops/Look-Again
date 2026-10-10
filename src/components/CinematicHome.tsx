@@ -2,16 +2,28 @@ import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { Lock, X } from 'lucide-react';
 import { AppScreen, OllamaHealthStatus } from '../types';
+import { formatEchoDayLabel } from '../services/echo';
 
 interface CinematicHomeProps {
   ollamaStatus: OllamaHealthStatus | null;
   onNavigate: (screen: AppScreen) => void;
+  echoDaysAgo?: number | null;
+  onStartEcho?: () => void;
+  demoMode?: boolean;
+  onToggleDemo?: (enabled: boolean) => void;
 }
 
 const NAV_LINK_CLASS =
   'text-[10px] sm:text-[11px] font-medium tracking-[0.12em] text-white/90 hover:text-white px-2.5 sm:px-4 py-1.5 rounded-full transition-colors duration-200';
 
-export const CinematicHome: React.FC<CinematicHomeProps> = ({ ollamaStatus, onNavigate }) => {
+export const CinematicHome: React.FC<CinematicHomeProps> = ({
+  ollamaStatus,
+  onNavigate,
+  echoDaysAgo = null,
+  onStartEcho,
+  demoMode = false,
+  onToggleDemo,
+}) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
 
@@ -145,6 +157,32 @@ export const CinematicHome: React.FC<CinematicHomeProps> = ({ ollamaStatus, onNa
         </h1>
       </div>
 
+      {/* Echo notice: only shown when a next-day memory test is available.
+          Placed in the calm middle band so it never overlaps the fixed header,
+          headline, or bottom block at desktop or 375px width. */}
+      {echoDaysAgo !== null && onStartEcho && (
+        <div
+          className="fixed left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-30 w-[calc(100%-2rem)] max-w-md px-0 pointer-events-none"
+          aria-live="polite"
+        >
+          <div className="liquid-glass rounded-3xl p-5 sm:p-6 flex flex-col items-center text-center gap-3 pointer-events-auto">
+            <p className="text-[13px] sm:text-sm text-white/90 font-light leading-relaxed">
+              Echo is ready: what do you still remember about your walk?
+            </p>
+            <p className="text-[11px] tracking-[0.12em] uppercase text-white/50 font-medium">
+              {formatEchoDayLabel(echoDaysAgo)}
+            </p>
+            <button
+              type="button"
+              onClick={onStartEcho}
+              className="bg-white text-black text-[13px] font-medium rounded-full px-6 py-2.5 transition-transform duration-200 motion-safe:hover:scale-[1.03] active:scale-[0.97]"
+            >
+              Remember it
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Bottom block */}
       <div
         className={`fixed bottom-14 left-0 right-0 z-20 flex flex-col items-center gap-6 ${transitionClass} ${
@@ -218,6 +256,35 @@ export const CinematicHome: React.FC<CinematicHomeProps> = ({ ollamaStatus, onNa
                 device, with a gentle note on what you tend to notice.
               </li>
             </ol>
+
+            {/* Demo mode: makes saved walks count as if they were made yesterday
+                so the next-day Echo can be demonstrated on demand. Off by default.
+                It never bypasses the Field Stories unlock rule. */}
+            <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between gap-4">
+              <div>
+                <div className="text-[13px] font-medium text-white">Demo: pretend a day has passed</div>
+                <div className="text-[11px] text-white/50 mt-0.5 font-light">
+                  Lets you test the next-day Echo right away.
+                </div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={demoMode}
+                aria-label="Demo: pretend a day has passed"
+                onClick={() => onToggleDemo?.(!demoMode)}
+                className={`relative w-11 h-6 rounded-full border transition-colors shrink-0 cursor-pointer ${
+                  demoMode ? 'bg-white border-white' : 'bg-white/10 border-white/25'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 w-4.5 h-4.5 rounded-full transition-all ${
+                    demoMode ? 'left-[1.4rem] bg-black' : 'left-0.5 bg-white/80'
+                  }`}
+                  style={{ width: '1.125rem', height: '1.125rem' }}
+                />
+              </button>
+            </div>
 
             <p className="mt-5 text-[13px] leading-relaxed text-white/55">
               Everything stays on your device. No cameras, no accounts, and no cloud AI — your journal

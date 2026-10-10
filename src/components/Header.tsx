@@ -115,7 +115,9 @@ export const Header: React.FC<HeaderProps> = ({
             currentScreen !== 'recall' &&
             currentScreen !== 'look_again' &&
             currentScreen !== 'reflect' &&
-            currentScreen !== 'unpack' && (
+            currentScreen !== 'unpack' &&
+            currentScreen !== 'post_save' &&
+            currentScreen !== 'echo' && (
               <button
                 onClick={() => onNavigate('pack_setup')}
                 className="flex items-center gap-1.5 text-xs font-medium px-3.5 py-1.5 rounded-xl bg-white text-black hover:bg-white/90 active:scale-95 transition-all shadow-lg cursor-pointer"

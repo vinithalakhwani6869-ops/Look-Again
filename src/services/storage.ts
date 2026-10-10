@@ -1,7 +1,9 @@
-import { JournalEntry, WalkPack, CheckResult, EnvironmentType, FocusType } from '../types';
+import { JournalEntry, WalkPack, CheckResult, EnvironmentType, FocusType, StoryState } from '../types';
 
 const STORAGE_KEY_JOURNAL = 'lookagain_journal_entries_v1';
 const STORAGE_KEY_ACTIVE_WALK = 'lookagain_active_walk_v1';
+const STORAGE_KEY_STORY = 'lookagain_story_v1';
+const STORAGE_KEY_DEMO = 'lookagain_demo_mode_v1';
 
 export interface StoredActiveWalk {
   pack: WalkPack;
@@ -76,8 +78,63 @@ export async function deleteAllJournalEntries(): Promise<void> {
   try {
     localStorage.removeItem(STORAGE_KEY_JOURNAL);
     localStorage.removeItem(STORAGE_KEY_ACTIVE_WALK);
+    localStorage.removeItem(STORAGE_KEY_STORY);
   } catch (e) {
     console.error('Failed to clear journal in localStorage:', e);
+  }
+}
+
+// --- Field Stories persistence (pure storage; generation lives in story.ts) ---
+
+const EMPTY_STORY: StoryState = { chapters: [], queue: [], synopsis: '' };
+
+export function getStoredStory(): StoryState {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_STORY);
+    if (!raw) return { ...EMPTY_STORY, chapters: [], queue: [] };
+    const parsed = JSON.parse(raw) as Partial<StoryState>;
+    return {
+      chapters: Array.isArray(parsed.chapters) ? parsed.chapters : [],
+      queue: Array.isArray(parsed.queue) ? parsed.queue : [],
+      synopsis: typeof parsed.synopsis === 'string' ? parsed.synopsis : '',
+    };
+  } catch (e) {
+    console.error('Failed to read story from localStorage:', e);
+    return { ...EMPTY_STORY, chapters: [], queue: [] };
+  }
+}
+
+export function saveStoredStory(state: StoryState): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_STORY, JSON.stringify(state));
+  } catch (e) {
+    console.error('Failed to write story to localStorage:', e);
+  }
+}
+
+export function clearStoredStory(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY_STORY);
+  } catch (e) {
+    console.error('Failed to clear story from localStorage:', e);
+  }
+}
+
+// --- Demo mode persistence ---
+
+export function getDemoMode(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_KEY_DEMO) === 'true';
+  } catch (e) {
+    return false;
+  }
+}
+
+export function setDemoMode(enabled: boolean): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_DEMO, enabled ? 'true' : 'false');
+  } catch (e) {
+    console.error('Failed to persist demo mode:', e);
   }
 }
 

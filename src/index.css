@@ -12,6 +12,15 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Tailwind v4 preflight sets buttons to cursor: default. Restore the expected
+     pointer affordance for interactive elements. The Home "LOCAL AI READY" status
+     pill is a plain <div> with no role, so it correctly stays non-clickable. */
+  button:not(:disabled),
+  [role="button"],
+  a[href] {
+    cursor: pointer;
+  }
 }
 
 .liquid-glass {

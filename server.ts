@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+﻿import express, { Request, Response } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
@@ -119,6 +119,30 @@ const summaryJsonSchema = {
     suggestedNextFocus: { type: 'string' },
   },
   required: ['journalText', 'tendencyNote', 'suggestedNextFocus'],
+};
+
+// JSON Schema for Field Stories chapter
+const storyJsonSchema = {
+  type: 'object',
+  properties: {
+    title: { type: 'string' },
+    chapter: { type: 'string' },
+    cliffhanger: { type: 'string' },
+    synopsisUpdate: { type: 'string' },
+  },
+  required: ['title', 'chapter', 'cliffhanger', 'synopsisUpdate'],
+};
+
+// JSON Schema for Echo sorting
+const echoJsonSchema = {
+  type: 'object',
+  properties: {
+    stillWithYou: { type: 'array', items: { type: 'string' } },
+    faded: { type: 'array', items: { type: 'string' } },
+    onlyCameBackNow: { type: 'array', items: { type: 'string' } },
+    note: { type: 'string' },
+  },
+  required: ['stillWithYou', 'faded', 'onlyCameBackNow', 'note'],
 };
 
 // Safety validator for Walk Pack
@@ -382,6 +406,234 @@ ${pastTendenciesSummary ? `Past sessions tendency context: ${pastTendenciesSumma
             ? `Ollama is offline. Your walk data has been saved locally.`
             : `AI unpack summary generation failed: ${err.message}`,
           code: isConnRefused ? 'OLLAMA_UNREACHABLE' : 'SUMMARY_ERROR',
+        });
+      }
+    }
+  }
+});
+
+// POST /api/story
+// Field Stories: writes one gentle fictional chapter inspired by the user's
+// real observations. LOCAL Ollama only — story input contains the user's own
+// words, so it must never go to a hosted provider.
+// Input:  { observations: string[], synopsis: string, lastLine: string }
+// Output: { chapter: { title, chapter, cliffhanger, synopsisUpdate, modelUsed, generatedAt } }
+app.post('/api/story', async (req: Request, res: Response) => {
+  const { observations = [], synopsis = '', lastLine = '' } = req.body;
+
+  const obsText = (Array.isArray(observations) ? observations : [])
+    .slice(0, 6)
+    .map((s: any) => (typeof s === 'string' ? s.trim() : '').slice(0, 220))
+    .filter(Boolean)
+    .join('\n- ');
+
+  const systemPrompt = `You write a quiet, gentle piece of fiction for the "LOOK AGAIN" app.
+RULES:
+1. This is labeled "Fiction inspired by your walk". It must not be mixed into journal facts.
+2. Draw inspiration ONLY from the user's real observations listed. Do not invent unrelated events.
+3. Keep content gentle and safe. No scary, violent, or sexual content. No real people. No encouraging trespassing or risk.
+4. "chapter" MUST be a single flowing paragraph of 150 to 220 words. This is required; do not return fewer than 150 words.
+5. "cliffhanger": one sentence, a small open question or a soft turn.
+6. "synopsisUpdate": max 120 words summarizing the story state after this chapter.
+7. Return pure JSON matching the specified schema.`;
+
+  const baseUserPrompt = `Observations from the walk:
+- ${obsText || 'a quiet walk with only a few notes'}
+
+Running synopsis (max 120 words):
+${synopsis || 'This is the first chapter. Begin a quiet mystery.'}
+
+Last chapter's final line (cliffhanger):
+${lastLine || '(none yet — this is the beginning)'}
+
+Write the next chapter as one paragraph of 150-220 words. Ground every clue in the observations above.`;
+
+  let attempts = 0;
+  const maxAttempts = 2;
+
+  while (attempts < maxAttempts) {
+    attempts++;
+    try {
+      const userPrompt = attempts > 1
+        ? `${baseUserPrompt}\n\nIMPORTANT: your previous reply was rejected because the "chapter" field was not 150-220 words. Write a full, complete paragraph of at least 150 words now.`
+        : baseUserPrompt;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 150000);
+
+      const response = await fetch(`${OLLAMA_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: OLLAMA_MODEL,
+          stream: false,
+          think: false,
+          keep_alive: '30m',
+          options: {
+            temperature: 0.8,
+            num_predict: 450,
+          },
+          format: storyJsonSchema,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+        }),
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        throw new Error(`Ollama responded with HTTP ${response.status}`);
+      }
+
+      const raw = await response.json() as { message?: { content?: string } };
+      const content = raw.message?.content;
+      if (!content) {
+        throw new Error('Ollama returned empty response content');
+      }
+
+      let parsed: any;
+      try {
+        parsed = JSON.parse(content);
+      } catch {
+        throw new Error('Failed to parse story JSON');
+      }
+
+      if (!parsed.title || !parsed.chapter || !parsed.cliffhanger || !parsed.synopsisUpdate) {
+        throw new Error('Missing required story fields');
+      }
+
+      const wordCount = (parsed.chapter || '').trim().split(/\s+/).filter(Boolean).length;
+      if (wordCount < 60 || wordCount > 400) {
+        if (attempts >= maxAttempts) {
+          return res.status(422).json({ error: 'Story validation failed: chapter length out of bounds', code: 'STORY_VALIDATION_FAILED' });
+        }
+        continue;
+      }
+
+      return res.json({
+        chapter: {
+          title: parsed.title,
+          chapter: parsed.chapter,
+          cliffhanger: parsed.cliffhanger,
+          synopsisUpdate: parsed.synopsisUpdate,
+          modelUsed: OLLAMA_MODEL,
+          generatedAt: new Date().toISOString(),
+        },
+      });
+    } catch (err: any) {
+      if (attempts >= maxAttempts) {
+        const isConnRefused = err.cause?.code === 'ECONNREFUSED' || err.message?.includes('ECONNREFUSED');
+        const isTimeout = err.name === 'AbortError' || err.message?.includes('aborted');
+        return res.status(503).json({
+          error: isConnRefused
+            ? 'Ollama is not available. The chapter will be written when the local AI is available.'
+            : isTimeout
+            ? 'Ollama timed out while writing the chapter.'
+            : `Story generation failed: ${err.message}`,
+          code: isConnRefused ? 'OLLAMA_UNREACHABLE' : isTimeout ? 'TIMEOUT' : 'STORY_ERROR',
+        });
+      }
+    }
+  }
+});
+
+// POST /api/echo
+// Sorts the user's next-day recollection against the saved entry.
+// Returns three lists and a gentle note. Only uses real text from inputs.
+app.post('/api/echo', async (req: Request, res: Response) => {
+  const { savedText = '', echoAnswer = '' } = req.body;
+
+  const systemPrompt = `You are sorting the user's next-day memory for "LOOK AGAIN".
+RULES:
+1. Use ONLY the information in "Saved entry text" and "Echo answer". Never invent items.
+2. Sort items into three plain lists: stillWithYou, faded, onlyCameBackNow.
+3. Each item must be a short paraphrase of real text.
+4. No counts, percentages, grades, or scores.
+5. "note": one gentle plain-language sentence (max 80 words).
+6. Return pure JSON matching the specified schema.`;
+
+  const userPrompt = `Saved entry text:
+${savedText || '(no saved notes)'}
+
+Echo answer (next day):
+${echoAnswer || '(nothing written)'}`;
+
+  let attempts = 0;
+  const maxAttempts = 2;
+
+  while (attempts < maxAttempts) {
+    attempts++;
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 150000);
+
+      const response = await fetch(`${OLLAMA_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: OLLAMA_MODEL,
+          stream: false,
+          think: false,
+          keep_alive: '30m',
+          options: {
+            temperature: 0.3,
+            num_predict: 400,
+          },
+          format: echoJsonSchema,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+        }),
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        throw new Error(`Ollama responded with HTTP ${response.status}`);
+      }
+
+      const raw = await response.json() as { message?: { content?: string } };
+      const content = raw.message?.content;
+      if (!content) {
+        throw new Error('Ollama returned empty response content');
+      }
+
+      let parsed: any;
+      try {
+        parsed = JSON.parse(content);
+      } catch {
+        throw new Error('Failed to parse echo JSON');
+      }
+
+      const ensureArray = (v: any) => Array.isArray(v) ? v : [];
+      parsed.stillWithYou = ensureArray(parsed.stillWithYou);
+      parsed.faded = ensureArray(parsed.faded);
+      parsed.onlyCameBackNow = ensureArray(parsed.onlyCameBackNow);
+
+      return res.json({
+        echo: {
+          stillWithYou: parsed.stillWithYou,
+          faded: parsed.faded,
+          onlyCameBackNow: parsed.onlyCameBackNow,
+          note: typeof parsed.note === 'string' ? parsed.note : '',
+          generatedWith: OLLAMA_MODEL,
+          generatedAt: new Date().toISOString(),
+          manual: false,
+        },
+      });
+    } catch (err: any) {
+      if (attempts >= maxAttempts) {
+        const isConnRefused = err.cause?.code === 'ECONNREFUSED' || err.message?.includes('ECONNREFUSED');
+        const isTimeout = err.name === 'AbortError' || err.message?.includes('aborted');
+        return res.status(503).json({
+          error: isConnRefused
+            ? 'Ollama is not available. Falling back to manual Echo.'
+            : isTimeout
+            ? 'Ollama timed out while sorting the Echo.'
+            : `Echo sorting failed: ${err.message}`,
+          code: isConnRefused ? 'OLLAMA_UNREACHABLE' : isTimeout ? 'TIMEOUT' : 'ECHO_ERROR',
         });
       }
     }

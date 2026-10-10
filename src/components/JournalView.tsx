@@ -1,29 +1,34 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { JournalEntry } from '../types';
+import { JournalEntry, StoryState } from '../types';
 import { 
   BookOpen, Trash2, Edit3, ArrowLeft, Download, Upload, 
-  Search, Sparkles, Check, Calendar, Clock, Share2, Save
+  Search, Sparkles, Check, Calendar, Clock, Share2, Save,
+  Feather, RefreshCw, Loader2, WifiOff
 } from 'lucide-react';
 import { exportJournalAsJson, importJournalFromJson } from '../services/storage';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 
 interface JournalViewProps {
   entries: JournalEntry[];
+  story: StoryState;
   onBack: () => void;
   onUpdateEntry: (entry: JournalEntry) => void;
   onDeleteEntry: (id: string) => void;
   onDeleteAllEntries: () => void;
   onStartNewWalk: () => void;
+  onRetryChapter: (entryId: string) => void;
 }
 
 export const JournalView: React.FC<JournalViewProps> = ({
   entries,
+  story,
   onBack,
   onUpdateEntry,
   onDeleteEntry,
   onDeleteAllEntries,
   onStartNewWalk,
+  onRetryChapter,
 }) => {
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,6 +44,11 @@ export const JournalView: React.FC<JournalViewProps> = ({
   const [copiedNotification, setCopiedNotification] = useState(false);
 
   const selectedEntry = entries.find((e) => e.id === selectedEntryId) || null;
+
+  const orderedChapters = [...story.chapters].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+  const pendingStoryItems = story.queue;
 
   const filteredEntries = entries.filter((entry) => {
     const matchesSearch =
@@ -196,6 +206,74 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
             : `${entries.length} recorded observation walks stored on this device`}
         </p>
       </div>
+
+      {/* Story so far — only appears once at least one chapter exists */}
+      {!selectedEntry && orderedChapters.length > 0 && (
+        <div className="mb-6 rounded-3xl border border-white/15 bg-white/5 p-5 sm:p-6 backdrop-blur-2xl">
+          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-white/60 mb-1">
+            <Feather className="w-3.5 h-3.5 text-white/70" />
+            Story so far
+          </div>
+          <p className="text-[11px] text-white/45 mb-4 font-light">Fiction inspired by your walk</p>
+
+          <div className="space-y-2.5">
+            {orderedChapters.map((ch, i) => (
+              <details
+                key={ch.id}
+                className="group rounded-2xl bg-white/5 border border-white/10 px-4 py-3 backdrop-blur-md"
+              >
+                <summary className="cursor-pointer list-none flex items-center justify-between gap-3">
+                  <span className="text-sm text-white/90 font-medium">
+                    <span className="font-mono text-white/40 mr-2">{i + 1}.</span>
+                    {ch.title}
+                  </span>
+                  <span className="text-[10px] font-mono text-white/40 shrink-0">
+                    {new Date(ch.createdAt).toLocaleDateString()}
+                  </span>
+                </summary>
+                <p className="mt-3 text-sm text-white/80 leading-relaxed whitespace-pre-line font-light">
+                  {ch.chapter}
+                </p>
+                <p className="mt-2 text-sm text-white/65 italic border-l-2 border-white/20 pl-3">
+                  {ch.cliffhanger}
+                </p>
+              </details>
+            ))}
+
+            {pendingStoryItems.map((item) => (
+              <div
+                key={item.entryId}
+                className="rounded-2xl bg-white/5 border border-dashed border-white/15 px-4 py-3 flex items-start gap-3 backdrop-blur-md"
+              >
+                {item.offline || item.status === 'error' ? (
+                  <WifiOff className="w-4 h-4 mt-0.5 shrink-0 text-white/60" />
+                ) : (
+                  <Loader2 className="w-4 h-4 mt-0.5 shrink-0 text-white/60 motion-safe:animate-spin" />
+                )}
+                <div>
+                  <p className="text-sm text-white/80 font-light">
+                    {item.offline
+                      ? 'A chapter is waiting for the local AI.'
+                      : item.status === 'error'
+                      ? item.error || 'A chapter could not be written.'
+                      : 'Writing your next chapter…'}
+                  </p>
+                  {(item.offline || item.status === 'error') && (
+                    <button
+                      type="button"
+                      onClick={() => onRetryChapter(item.entryId)}
+                      className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-black text-[11px] font-semibold hover:bg-white/90 transition-all cursor-pointer"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      Retry
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Detail View of Selected Entry */}
       {selectedEntry ? (
@@ -400,6 +478,97 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
               </p>
             )}
           </div>
+
+          {/* Echo: next-day memory test, saved on this walk */}
+          {selectedEntry.echo && (
+            <div className="border-t border-white/10 pt-5">
+              <div className="text-xs font-semibold uppercase tracking-widest text-white/60 mb-3 flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 text-white/70" />
+                Echo • next-day memory
+              </div>
+
+              {selectedEntry.echo.skipped ? (
+                <p className="text-xs sm:text-sm text-white/70 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md font-light">
+                  This Echo was skipped.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-[11px] font-mono text-white/45">
+                    Recorded {new Date(selectedEntry.echo.completedAt).toLocaleString()}
+                  </p>
+                  {selectedEntry.echo.answer && (
+                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl backdrop-blur-md">
+                      <div className="text-[10px] font-semibold uppercase tracking-widest text-white/50 mb-1">
+                        What came back
+                      </div>
+                      <p className="text-xs sm:text-sm text-white/85 whitespace-pre-line font-light">
+                        {selectedEntry.echo.answer}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedEntry.echo.result && (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md">
+                          <div className="text-[10px] font-semibold uppercase tracking-widest text-white/80 mb-2">
+                            Still with you
+                          </div>
+                          {selectedEntry.echo.result.stillWithYou.length === 0 ? (
+                            <p className="text-xs text-white/40 font-light">Nothing here.</p>
+                          ) : (
+                            <ul className="space-y-1.5">
+                              {selectedEntry.echo.result.stillWithYou.map((it, i) => (
+                                <li key={i} className="text-xs text-white/85 font-light">— {it}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md">
+                          <div className="text-[10px] font-semibold uppercase tracking-widest text-white/50 mb-2">
+                            Faded
+                          </div>
+                          {selectedEntry.echo.result.faded.length === 0 ? (
+                            <p className="text-xs text-white/40 font-light">Nothing here.</p>
+                          ) : (
+                            <ul className="space-y-1.5">
+                              {selectedEntry.echo.result.faded.map((it, i) => (
+                                <li key={i} className="text-xs text-white/85 font-light">— {it}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md">
+                          <div className="text-[10px] font-semibold uppercase tracking-widest text-white/70 mb-2">
+                            Only came back now
+                          </div>
+                          {selectedEntry.echo.result.onlyCameBackNow.length === 0 ? (
+                            <p className="text-xs text-white/40 font-light">Nothing here.</p>
+                          ) : (
+                            <ul className="space-y-1.5">
+                              {selectedEntry.echo.result.onlyCameBackNow.map((it, i) => (
+                                <li key={i} className="text-xs text-white/85 font-light">— {it}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </div>
+                      {selectedEntry.echo.result.note && (
+                        <p className="text-xs sm:text-sm text-white/80 leading-relaxed bg-white/5 border border-white/10 p-4 rounded-2xl backdrop-blur-md font-light">
+                          {selectedEntry.echo.result.note}
+                        </p>
+                      )}
+                      {selectedEntry.echo.result.manual && (
+                        <p className="text-[11px] text-white/45 font-light">
+                          Sorted by hand — the local model was unavailable.
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </motion.div>
       ) : (
         /* List of Entries */

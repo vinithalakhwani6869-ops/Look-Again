@@ -1,4 +1,4 @@
-import { WalkPack, EnvironmentType, FocusType, CheckResult, OllamaHealthStatus } from '../types';
+import { WalkPack, EnvironmentType, FocusType, CheckResult, OllamaHealthStatus, StoryChapter, EchoSort } from '../types';
 
 export async function checkOllamaHealth(): Promise<OllamaHealthStatus> {
   try {
@@ -77,4 +77,61 @@ export async function generateAISummary(params: {
   }
 
   return data.summary;
+}
+
+// Field Stories: generate one fictional chapter from the user's real observations.
+// Always goes through the LOCAL Ollama proxy. On failure, throws with an
+// `offline` flag when Ollama is unreachable so the UI can explain plainly.
+export async function generateStoryChapter(params: {
+  observations: string[];
+  synopsis: string;
+  lastLine: string;
+}): Promise<Pick<StoryChapter, 'title' | 'chapter' | 'cliffhanger'> & { synopsisUpdate: string; modelUsed?: string }> {
+  const res = await fetch('/api/story', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+
+  let data: any = null;
+  try {
+    data = await res.json();
+  } catch {
+    data = null;
+  }
+
+  if (!res.ok) {
+    const err = new Error(data?.error || 'Could not write the chapter with the local model.') as Error & { offline?: boolean };
+    err.offline = data?.code === 'OLLAMA_UNREACHABLE' || res.status === 503;
+    throw err;
+  }
+
+  return data.chapter;
+}
+
+// Echo: sort the user's next-day recollection against their saved entry.
+export async function generateEchoSort(params: {
+  savedText: string;
+  echoAnswer: string;
+}): Promise<EchoSort> {
+  const res = await fetch('/api/echo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+
+  let data: any = null;
+  try {
+    data = await res.json();
+  } catch {
+    data = null;
+  }
+
+  if (!res.ok) {
+    const err = new Error(data?.error || 'Could not sort the Echo with the local model.') as Error & { offline?: boolean };
+    err.offline = data?.code === 'OLLAMA_UNREACHABLE' || res.status === 503;
+    throw err;
+  }
+
+  return data.echo;
 }

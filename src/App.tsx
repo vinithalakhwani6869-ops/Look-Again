@@ -1,13 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useSyncExternalStore } from 'react';
 import { 
   AppScreen, WalkPack, JournalEntry, CheckResult, 
-  OllamaHealthStatus 
+  OllamaHealthStatus, StoryState, EchoRecord 
 } from './types';
 import { 
   getJournalEntries, saveJournalEntry, updateJournalEntry, 
   deleteJournalEntry, deleteAllJournalEntries, getStoredActiveWalk, 
-  saveStoredActiveWalk, StoredActiveWalk, computePastTendenciesSummary 
+  saveStoredActiveWalk, StoredActiveWalk, computePastTendenciesSummary,
+  getDemoMode, setDemoMode 
 } from './services/storage';
+import {
+  subscribeStory, getStory, requestChapter, processQueue, retryChapter, clearStory,
+} from './services/story';
+import { getEchoCandidate } from './services/echo';
 import { checkOllamaHealth } from './services/api';
 import { Header } from './components/Header';
 import { CinematicHome } from './components/CinematicHome';
@@ -18,6 +23,8 @@ import { RecallView } from './components/RecallView';
 import { LookAgainView } from './components/LookAgainView';
 import { ReflectView } from './components/ReflectView';
 import { UnpackView } from './components/UnpackView';
+import { PostSaveView } from './components/PostSaveView';
+import { EchoView } from './components/EchoView';
 import { JournalView } from './components/JournalView';
 import { OllamaGuideModal } from './components/OllamaGuideModal';
 
@@ -26,6 +33,14 @@ export default function App() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [ollamaStatus, setOllamaStatus] = useState<OllamaHealthStatus | null>(null);
   const [isOllamaModalOpen, setIsOllamaModalOpen] = useState<boolean>(false);
+
+  // Field Stories state is stored on-device and shared through a tiny store.
+  const story = useSyncExternalStore(subscribeStory, getStory, getStory);
+  const [demoMode, setDemoModeState] = useState<boolean>(false);
+  const [lastSavedEntryId, setLastSavedEntryId] = useState<string | null>(null);
+
+  // Next-day Echo candidate (independent of Field Stories gating).
+  const echoCandidate = getEchoCandidate(entries, demoMode);
 
   // Active Walk In-Progress State
   const [activePack, setActivePack] = useState<WalkPack | null>(null);
@@ -42,8 +57,17 @@ export default function App() {
       setEntries(saved);
     });
 
+    setDemoModeState(getDemoMode());
+
+    // Resume any chapter that was still pending before a page refresh.
+    void processQueue();
+
     checkOllamaHealth().then((status) => {
       setOllamaStatus(status);
+      // If the local model is now reachable, write any queued chapters.
+      if (status.status === 'ok' && status.modelAvailable) {
+        void processQueue();
+      }
     });
 
     const stored = getStoredActiveWalk();
@@ -140,6 +164,44 @@ export default function App() {
     setActivePack(null);
     const updatedEntries = await getJournalEntries();
     setEntries(updatedEntries);
+    setLastSavedEntryId(entry.id);
+    // A saved walk is the ONLY thing that can unlock a chapter. Generation runs
+    // in the background and never blocks the UI.
+    requestChapter(entry);
+    setCurrentScreen('post_save');
+  };
+
+  const handleToggleDemo = (enabled: boolean) => {
+    setDemoMode(enabled);
+    setDemoModeState(enabled);
+  };
+
+  const handleCompleteEcho = async (echo: EchoRecord) => {
+    const candidate = echoCandidate;
+    if (!candidate) {
+      setCurrentScreen('home');
+      return;
+    }
+    const updated: JournalEntry = { ...candidate.entry, echo };
+    await updateJournalEntry(updated);
+    const refreshed = await getJournalEntries();
+    setEntries(refreshed);
+    setCurrentScreen('journal');
+  };
+
+  const handleSkipEcho = async () => {
+    const candidate = echoCandidate;
+    if (!candidate) {
+      setCurrentScreen('home');
+      return;
+    }
+    const updated: JournalEntry = {
+      ...candidate.entry,
+      echo: { completedAt: new Date().toISOString(), answer: '', skipped: true },
+    };
+    await updateJournalEntry(updated);
+    const refreshed = await getJournalEntries();
+    setEntries(refreshed);
     setCurrentScreen('journal');
   };
 
@@ -157,7 +219,9 @@ export default function App() {
 
   const handleDeleteAllEntries = async () => {
     await deleteAllJournalEntries();
+    clearStory();
     setEntries([]);
+    setLastSavedEntryId(null);
   };
 
   const pastTendenciesSummary = computePastTendenciesSummary(entries);
@@ -165,7 +229,16 @@ export default function App() {
   // Cinematic Home screen: full-viewport, self-contained fixed layers. Rendering it
   // in isolation guarantees its fixed header/headline/bottom never overlap other screens.
   if (currentScreen === 'home') {
-    return <CinematicHome ollamaStatus={ollamaStatus} onNavigate={setCurrentScreen} />;
+    return (
+      <CinematicHome
+        ollamaStatus={ollamaStatus}
+        onNavigate={setCurrentScreen}
+        echoDaysAgo={echoCandidate ? echoCandidate.daysAgo : null}
+        onStartEcho={() => setCurrentScreen('echo')}
+        demoMode={demoMode}
+        onToggleDemo={handleToggleDemo}
+      />
+    );
   }
 
   return (
@@ -259,14 +332,55 @@ export default function App() {
             />
           )}
 
+          {currentScreen === 'post_save' && (
+            (() => {
+              const savedEntry = entries.find((e) => e.id === lastSavedEntryId);
+              if (!savedEntry) {
+                return (
+                  <JournalView
+                    entries={entries}
+                    story={story}
+                    onBack={() => setCurrentScreen('home')}
+                    onUpdateEntry={handleUpdateEntry}
+                    onDeleteEntry={handleDeleteEntry}
+                    onDeleteAllEntries={handleDeleteAllEntries}
+                    onStartNewWalk={() => setCurrentScreen('pack_setup')}
+                    onRetryChapter={retryChapter}
+                  />
+                );
+              }
+              return (
+                <PostSaveView
+                  entry={savedEntry}
+                  story={story}
+                  isFirstWalk={entries.length === 1}
+                  onNavigate={setCurrentScreen}
+                  onRetryChapter={retryChapter}
+                />
+              );
+            })()
+          )}
+
+          {currentScreen === 'echo' && echoCandidate && (
+            <EchoView
+              entry={echoCandidate.entry}
+              daysAgo={echoCandidate.daysAgo}
+              onComplete={handleCompleteEcho}
+              onSkip={handleSkipEcho}
+              onBack={() => setCurrentScreen('home')}
+            />
+          )}
+
           {currentScreen === 'journal' && (
             <JournalView
               entries={entries}
+              story={story}
               onBack={() => setCurrentScreen('home')}
               onUpdateEntry={handleUpdateEntry}
               onDeleteEntry={handleDeleteEntry}
               onDeleteAllEntries={handleDeleteAllEntries}
               onStartNewWalk={() => setCurrentScreen('pack_setup')}
+              onRetryChapter={retryChapter}
             />
           )}
         </div>

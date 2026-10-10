@@ -53,6 +53,54 @@ export interface JournalEntry {
     generatedWith?: string;
     generatedAt: string;
   };
+  echo?: EchoRecord;
+}
+
+// --- Field Stories (Fiction inspired by your walk) ---
+
+export interface StoryChapter {
+  id: string;
+  entryId: string; // links the chapter to the journal entry that unlocked it
+  title: string;
+  chapter: string; // 150-220 words
+  cliffhanger: string; // one sentence
+  createdAt: string;
+  modelUsed?: string;
+}
+
+export type StoryQueueStatus = 'pending' | 'error';
+
+export interface StoryQueueItem {
+  entryId: string;
+  status: StoryQueueStatus;
+  error?: string;
+  offline?: boolean;
+  createdAt: string;
+}
+
+export interface StoryState {
+  chapters: StoryChapter[];
+  queue: StoryQueueItem[];
+  synopsis: string; // running synopsis, max ~120 words
+}
+
+// --- Echo (next-day memory test) ---
+
+export interface EchoSort {
+  stillWithYou: string[];
+  faded: string[];
+  onlyCameBackNow: string[];
+  note: string;
+  manual?: boolean;
+  generatedWith?: string;
+  generatedAt: string;
+}
+
+export interface EchoRecord {
+  completedAt: string;
+  answer: string;
+  skipped?: boolean;
+  result?: EchoSort;
 }
 
 export type AppScreen = 
@@ -64,6 +112,8 @@ export type AppScreen =
   | 'look_again'
   | 'reflect'
   | 'unpack'
+  | 'post_save'
+  | 'echo'
   | 'journal'
   | 'entry_detail';
 
