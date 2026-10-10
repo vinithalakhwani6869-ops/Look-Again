@@ -160,7 +160,7 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
           {entries.length > 0 && (
             <button
               onClick={() => setShowDeleteAllModal(true)}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-950/20 text-rose-300 text-xs hover:bg-rose-950/40 transition-all cursor-pointer backdrop-blur-md"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-white/15 bg-white/5 text-white/80 text-xs hover:bg-white/15 transition-all cursor-pointer backdrop-blur-md"
               title="Delete all data"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -172,7 +172,7 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
 
       {/* Import status notification banner */}
       {importStatus && (
-        <div className="p-3.5 mb-4 rounded-2xl bg-emerald-950/40 text-emerald-300 text-xs font-medium border border-emerald-500/30 backdrop-blur-md">
+        <div className="p-3.5 mb-4 rounded-2xl bg-white/5 text-white/80 text-xs font-medium border border-white/15 backdrop-blur-md">
           {importStatus}
         </div>
       )}
@@ -180,7 +180,7 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
       {/* Copied notification toast */}
       {copiedNotification && (
         <div className="fixed bottom-6 right-6 z-50 p-3.5 rounded-2xl bg-white text-black font-semibold text-xs shadow-2xl flex items-center gap-2 animate-in fade-in">
-          <Check className="w-4 h-4 text-emerald-600" />
+          <Check className="w-4 h-4 text-black" />
           <span>Copied Markdown to clipboard</span>
         </div>
       )}
@@ -242,7 +242,7 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
 
               <button
                 onClick={() => setDeleteTargetId(selectedEntry.id)}
-                className="p-2 rounded-xl border border-rose-500/30 bg-rose-950/20 text-rose-300 hover:bg-rose-950/40 text-xs transition-all cursor-pointer backdrop-blur-md"
+                className="p-2 rounded-xl border border-white/15 bg-white/5 text-white/80 hover:bg-white/15 text-xs transition-all cursor-pointer backdrop-blur-md"
                 title="Delete this entry"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -278,7 +278,7 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
               {selectedEntry.pack.isPreset ? (
                 <span className="text-[11px] text-white/50">Preset mission</span>
               ) : (
-                <span className="text-[11px] font-mono text-emerald-400">
+                <span className="text-[11px] font-mono text-white/60">
                   AI: {selectedEntry.pack.modelUsed || 'qwen3:4b'}
                 </span>
               )}
@@ -300,7 +300,7 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
             <div className="space-y-4">
               <div>
                 <div className="text-xs font-semibold uppercase tracking-widest text-white/60 mb-2 flex items-center gap-2">
-                  <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+                  <BookOpen className="w-3.5 h-3.5 text-white/70" />
                   Field Journal Synthesis
                 </div>
                 <div className="text-sm text-white/90 leading-relaxed bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md font-light">
@@ -309,16 +309,16 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
               </div>
 
               {/* Tendencies Note */}
-              <div className="bg-emerald-950/30 border border-emerald-500/30 p-5 rounded-2xl backdrop-blur-md">
-                <div className="text-xs font-semibold uppercase tracking-widest text-emerald-400 mb-1.5 flex items-center gap-2">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+              <div className="bg-white/5 border border-white/10 p-5 rounded-2xl backdrop-blur-md">
+                <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-1.5 flex items-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5 text-white/70" />
                   Tendencies Observation (Qualitative, no scores)
                 </div>
                 <p className="text-xs sm:text-sm text-white/90 leading-relaxed font-light">
                   {selectedEntry.aiSummary.tendencyNote}
                 </p>
                 {selectedEntry.aiSummary.suggestedNextFocus && (
-                  <div className="text-xs text-emerald-300 font-medium mt-3 pt-3 border-t border-emerald-500/20">
+                  <div className="text-xs text-white/70 font-medium mt-3 pt-3 border-t border-white/10">
                     Recommended next focus: <strong className="capitalize text-white">{selectedEntry.aiSummary.suggestedNextFocus}</strong>
                   </div>
                 )}
@@ -364,10 +364,10 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
                     <span
                       className={`px-2.5 py-0.5 rounded-lg font-semibold text-[10px] ${
                         r.verdict === 'right'
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          ? 'bg-white text-black border border-white'
                           : r.verdict === 'wrong'
-                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                          ? 'bg-transparent text-white border border-white/60'
+                          : 'bg-transparent text-white border border-dashed border-white/50'
                       }`}
                     >
                       {r.verdict === 'right' ? 'Right' : r.verdict === 'wrong' ? 'Wrong' : 'Never noticed'}
@@ -423,15 +423,15 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
                 onChange={(e) => setFilterFocus(e.target.value)}
                 className="text-xs py-3 px-4 rounded-2xl bg-white/10 border border-white/15 text-white focus:outline-hidden backdrop-blur-md cursor-pointer"
               >
-                <option value="all" className="bg-[#121614] text-white">All Focuses</option>
-                <option value="surprise" className="bg-[#121614] text-white">Surprise</option>
-                <option value="sounds" className="bg-[#121614] text-white">Sounds</option>
-                <option value="patterns" className="bg-[#121614] text-white">Patterns</option>
-                <option value="movement" className="bg-[#121614] text-white">Movement</option>
-                <option value="light" className="bg-[#121614] text-white">Light & Shadow</option>
-                <option value="above" className="bg-[#121614] text-white">Above Eye Level</option>
-                <option value="periphery" className="bg-[#121614] text-white">Periphery</option>
-                <option value="details" className="bg-[#121614] text-white">Small Details</option>
+                <option value="all" className="bg-[#0a0a0a] text-white">All Focuses</option>
+                <option value="surprise" className="bg-[#0a0a0a] text-white">Surprise</option>
+                <option value="sounds" className="bg-[#0a0a0a] text-white">Sounds</option>
+                <option value="patterns" className="bg-[#0a0a0a] text-white">Patterns</option>
+                <option value="movement" className="bg-[#0a0a0a] text-white">Movement</option>
+                <option value="light" className="bg-[#0a0a0a] text-white">Light & Shadow</option>
+                <option value="above" className="bg-[#0a0a0a] text-white">Above Eye Level</option>
+                <option value="periphery" className="bg-[#0a0a0a] text-white">Periphery</option>
+                <option value="details" className="bg-[#0a0a0a] text-white">Small Details</option>
               </select>
             </div>
           </div>
@@ -483,7 +483,7 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
                         <span className="capitalize">{entry.environment}</span>
                       </div>
 
-                      <h3 className="text-lg font-medium text-white group-hover:text-emerald-300 transition-colors">
+                      <h3 className="text-lg font-medium text-white/90 group-hover:text-white transition-colors">
                         {entry.pack.title}
                       </h3>
 
@@ -507,7 +507,7 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
                           e.stopPropagation();
                           setDeleteTargetId(entry.id);
                         }}
-                        className="p-1.5 rounded-lg text-white/30 hover:text-rose-400 hover:bg-rose-950/30 transition-all cursor-pointer"
+                        className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
                         title="Delete entry"
                       >
                         <Trash2 className="w-3.5 h-3.5" />

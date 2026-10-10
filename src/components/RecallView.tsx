@@ -41,7 +41,7 @@ export const RecallView: React.FC<RecallViewProps> = ({
         className="liquid-glass rounded-2xl p-5 mb-6 border border-white/15 backdrop-blur-2xl shadow-xl flex items-start gap-4"
       >
         <div className="w-9 h-9 rounded-xl bg-white/10 text-white flex items-center justify-center shrink-0 mt-0.5">
-          <EyeOff className="w-5 h-5 text-amber-400" />
+          <EyeOff className="w-5 h-5 text-white/70" />
         </div>
         <div>
           <h2 className="text-base font-medium text-white">

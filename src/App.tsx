@@ -170,9 +170,9 @@ export default function App() {
 
   return (
     <main className="relative w-full min-h-[115vh] overflow-x-hidden flex flex-col items-center font-sans selection:bg-white/20 selection:text-white">
-      {/* Calm CSS-only background: soft green / off-white gradient (no external media) */}
-      <div className="fixed inset-0 z-[0] bg-gradient-to-b from-[#0B0E0D] via-[#16241C] to-[#2D4A3E]" />
-      <div className="fixed inset-0 z-[0] bg-[radial-gradient(circle_at_25%_15%,rgba(250,248,245,0.12),transparent_55%),radial-gradient(circle_at_75%_85%,rgba(120,150,130,0.30),transparent_60%)]" />
+      {/* Calm CSS-only monochrome background (no external media) */}
+      <div className="fixed inset-0 z-[0] bg-black" />
+      <div className="fixed inset-0 z-[0] bg-[radial-gradient(circle_at_25%_15%,rgba(255,255,255,0.06),transparent_55%),radial-gradient(circle_at_75%_85%,rgba(255,255,255,0.04),transparent_60%)]" />
 
       {/* Subtle overlay for optimal content readability */}
       <div className="fixed inset-0 bg-black/30 z-[1] pointer-events-none" />

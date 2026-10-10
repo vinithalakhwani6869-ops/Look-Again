@@ -56,9 +56,9 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onOpenOllamaModal}
             className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all cursor-pointer backdrop-blur-md ${
               isOllamaReady
-                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25'
+                ? 'bg-white/15 text-white border-white/30 hover:bg-white/25'
                 : isOllamaConnectedNoModel
-                ? 'bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25'
+                ? 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
                 : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10'
             }`}
             title="Local AI Engine Status"
@@ -66,10 +66,10 @@ export const Header: React.FC<HeaderProps> = ({
             <span
               className={`w-2 h-2 rounded-full inline-block ${
                 isOllamaReady
-                  ? 'bg-emerald-400 animate-pulse'
+                  ? 'bg-white animate-pulse'
                   : isOllamaConnectedNoModel
-                  ? 'bg-amber-400'
-                  : 'bg-white/40'
+                  ? 'border border-white/70 bg-transparent'
+                  : 'border border-white/40 bg-transparent'
               }`}
             />
             <span className="hidden sm:inline font-sans font-medium text-[11px]">

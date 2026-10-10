@@ -221,7 +221,7 @@ export const UnpackView: React.FC<UnpackViewProps> = ({
           <div className="space-y-4">
             <div>
               <div className="text-xs font-semibold uppercase tracking-widest text-white/60 mb-2 flex items-center gap-2">
-                <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+                <BookOpen className="w-3.5 h-3.5 text-white/70" />
                 Field Note Synthesis
               </div>
               <p className="text-sm text-white/90 leading-relaxed bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md font-light">
@@ -230,16 +230,16 @@ export const UnpackView: React.FC<UnpackViewProps> = ({
             </div>
 
             {/* Tendencies Note */}
-            <div className="bg-emerald-950/30 border border-emerald-500/30 p-5 rounded-2xl backdrop-blur-md">
-              <div className="text-xs font-semibold uppercase tracking-widest text-emerald-400 mb-1.5 flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+            <div className="bg-white/5 border border-white/10 p-5 rounded-2xl backdrop-blur-md">
+              <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-1.5 flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-white/70" />
                 Tendencies Note (No scores or percentages)
               </div>
               <p className="text-xs sm:text-sm text-white/90 leading-relaxed font-light">
                 {aiSummary.tendencyNote}
               </p>
               {aiSummary.suggestedNextFocus && (
-                <div className="text-xs text-emerald-300 font-medium mt-3 pt-3 border-t border-emerald-500/20">
+                <div className="text-xs text-white/70 font-medium mt-3 pt-3 border-t border-white/10">
                   Suggested focus for next walk: <strong className="capitalize text-white">{aiSummary.suggestedNextFocus}</strong>
                 </div>
               )}
@@ -266,10 +266,10 @@ export const UnpackView: React.FC<UnpackViewProps> = ({
                   <span
                     className={`px-2.5 py-0.5 rounded-lg font-semibold text-[10px] ${
                       r.verdict === 'right'
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        ? 'bg-white text-black border border-white'
                         : r.verdict === 'wrong'
-                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        ? 'bg-transparent text-white border border-white/60'
+                        : 'bg-transparent text-white border border-dashed border-white/50'
                     }`}
                   >
                     {r.verdict === 'right' ? 'Right' : r.verdict === 'wrong' ? 'Wrong' : 'Never noticed'}

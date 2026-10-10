@@ -34,7 +34,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
         </button>
 
         <div className="flex items-center gap-3.5 mb-4">
-          <div className="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-white/10 text-white border border-white/20 flex items-center justify-center shrink-0">
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
@@ -57,7 +57,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
           </button>
           <button
             onClick={onConfirm}
-            className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 text-white hover:bg-rose-500 transition-all cursor-pointer flex items-center gap-2 shadow-lg"
+            className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-white text-black hover:bg-white/90 transition-all cursor-pointer flex items-center gap-2 shadow-lg"
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>{confirmLabel}</span>

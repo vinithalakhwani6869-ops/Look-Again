@@ -62,7 +62,7 @@ export const LookAgainView: React.FC<LookAgainViewProps> = ({
         className="liquid-glass rounded-2xl p-5 mb-6 border border-white/15 backdrop-blur-2xl shadow-xl flex items-start gap-4"
       >
         <div className="w-9 h-9 rounded-xl bg-white/10 text-white flex items-center justify-center shrink-0 mt-0.5">
-          <Eye className="w-5 h-5 text-emerald-400" />
+          <Eye className="w-5 h-5 text-white/70" />
         </div>
         <div>
           <h2 className="text-base font-medium text-white">
@@ -116,7 +116,7 @@ export const LookAgainView: React.FC<LookAgainViewProps> = ({
                     onClick={() => handleVerdictChange(idx, 'right')}
                     className={`py-2.5 px-2 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all cursor-pointer backdrop-blur-md ${
                       item.verdict === 'right'
-                        ? 'bg-emerald-500 text-white border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.5)]'
+                        ? 'bg-white text-black border-white shadow-none'
                         : 'bg-white/5 text-white/80 border-white/10 hover:bg-white/10'
                     }`}
                   >
@@ -129,7 +129,7 @@ export const LookAgainView: React.FC<LookAgainViewProps> = ({
                     onClick={() => handleVerdictChange(idx, 'wrong')}
                     className={`py-2.5 px-2 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all cursor-pointer backdrop-blur-md ${
                       item.verdict === 'wrong'
-                        ? 'bg-rose-600 text-white border-rose-500 shadow-[0_0_15px_rgba(225,29,72,0.5)]'
+                        ? 'bg-transparent text-white border-white/60 shadow-none'
                         : 'bg-white/5 text-white/80 border-white/10 hover:bg-white/10'
                     }`}
                   >
@@ -142,7 +142,7 @@ export const LookAgainView: React.FC<LookAgainViewProps> = ({
                     onClick={() => handleVerdictChange(idx, 'never_noticed')}
                     className={`py-2.5 px-2 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all cursor-pointer backdrop-blur-md ${
                       item.verdict === 'never_noticed'
-                        ? 'bg-amber-600 text-white border-amber-500 shadow-[0_0_15px_rgba(217,119,6,0.5)]'
+                        ? 'bg-transparent text-white border-dashed border-white/50 shadow-none'
                         : 'bg-white/5 text-white/80 border-white/10 hover:bg-white/10'
                     }`}
                   >
@@ -169,7 +169,7 @@ export const LookAgainView: React.FC<LookAgainViewProps> = ({
         {/* One thing that surprised me */}
         <div className="liquid-glass rounded-3xl p-6 border border-white/15 backdrop-blur-2xl shadow-xl">
           <label className="block text-xs font-semibold uppercase tracking-widest text-white/60 mb-1 flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <Sparkles className="w-3.5 h-3.5 text-white/70" />
             One Thing That Surprised Me
           </label>
           <p className="text-xs text-white/50 mb-3 font-light">

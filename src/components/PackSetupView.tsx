@@ -149,7 +149,7 @@ export const PackSetupView: React.FC<PackSetupViewProps> = ({
             {/* Section 1: Duration */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-widest text-white/60 mb-3 flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                <Clock className="w-3.5 h-3.5 text-white/70" />
                 Available Time
               </label>
               <div className="grid grid-cols-3 gap-3">
@@ -176,7 +176,7 @@ export const PackSetupView: React.FC<PackSetupViewProps> = ({
             {/* Section 2: Environment */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-widest text-white/60 mb-3 flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-sky-400" />
+                <MapPin className="w-3.5 h-3.5 text-white/70" />
                 Environment
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -201,7 +201,7 @@ export const PackSetupView: React.FC<PackSetupViewProps> = ({
             {/* Section 3: Focus */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-widest text-white/60 mb-3 flex items-center gap-2">
-                <Compass className="w-3.5 h-3.5 text-purple-400" />
+                <Compass className="w-3.5 h-3.5 text-white/70" />
                 Sensory Focus
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -225,9 +225,9 @@ export const PackSetupView: React.FC<PackSetupViewProps> = ({
 
             {/* Error Banner if AI failed */}
             {errorMsg && (
-              <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-200 flex flex-col gap-2.5 backdrop-blur-md">
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/15 text-xs text-white/80 flex flex-col gap-2.5 backdrop-blur-md">
                 <div className="flex items-start gap-2.5">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-white/70" />
                   <div>
                     <div className="font-semibold text-white">Ollama notification</div>
                     <div className="mt-0.5 opacity-90">{errorMsg}</div>
@@ -258,7 +258,7 @@ export const PackSetupView: React.FC<PackSetupViewProps> = ({
                   onClick={handleGenerateAI}
                   className="flex-1 flex items-center justify-center gap-2 py-4 px-6 rounded-2xl bg-white text-black font-semibold text-sm hover:bg-white/90 active:scale-95 transition-all shadow-xl cursor-pointer"
                 >
-                  <Sparkles className="w-4 h-4 text-emerald-600" />
+                  <Sparkles className="w-4 h-4 text-black" />
                   <span>Generate with Local Ollama ({ollamaStatus?.targetModel})</span>
                 </button>
               ) : (

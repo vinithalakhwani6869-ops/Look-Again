@@ -58,7 +58,7 @@ export const OllamaGuideModal: React.FC<OllamaGuideModalProps> = ({
         {/* Modal Header */}
         <div className="flex items-center gap-3.5 mb-6">
           <div className="w-11 h-11 rounded-2xl bg-white/10 text-white flex items-center justify-center backdrop-blur-md border border-white/10">
-            <Cpu className="w-5 h-5 text-emerald-400" />
+            <Cpu className="w-5 h-5 text-white/70" />
           </div>
           <div>
             <h2 className="text-xl font-medium text-white">
@@ -73,17 +73,17 @@ export const OllamaGuideModal: React.FC<OllamaGuideModalProps> = ({
         {/* Connection Diagnostics Card */}
         <div className={`p-5 rounded-2xl border mb-6 transition-all backdrop-blur-md ${
           hasModel 
-            ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-100' 
+            ? 'bg-white/10 border-white/25 text-white' 
             : isConnected 
-            ? 'bg-amber-950/30 border-amber-500/30 text-amber-100'
+            ? 'bg-white/5 border-white/15 text-white/90'
             : 'bg-white/5 border-white/10 text-white/80'
         }`}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
               {hasModel ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-5 h-5 text-white shrink-0 mt-0.5" />
               ) : isConnected ? (
-                <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <AlertTriangle className="w-5 h-5 text-white/80 shrink-0 mt-0.5" />
               ) : (
                 <div className="w-4 h-4 rounded-full bg-white/30 shrink-0 mt-1" />
               )}
@@ -129,7 +129,7 @@ export const OllamaGuideModal: React.FC<OllamaGuideModalProps> = ({
         {/* How to run Ollama */}
         <div className="mb-6">
           <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
-            <Terminal className="w-4 h-4 text-emerald-400" />
+            <Terminal className="w-4 h-4 text-white/70" />
             Quick Setup in Terminal
           </h3>
           <p className="text-xs text-white/60 mb-2.5 leading-relaxed font-light">
@@ -137,7 +137,7 @@ export const OllamaGuideModal: React.FC<OllamaGuideModalProps> = ({
           </p>
 
           <div className="relative bg-black/60 text-white rounded-2xl p-4 font-mono text-xs flex items-center justify-between border border-white/10 shadow-inner">
-            <code className="text-emerald-400">ollama run qwen3:4b</code>
+            <code className="text-white">ollama run qwen3:4b</code>
             <button
               onClick={() => copyCommand('ollama run qwen3:4b')}
               className="text-[11px] bg-white/20 hover:bg-white/30 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
@@ -153,7 +153,7 @@ export const OllamaGuideModal: React.FC<OllamaGuideModalProps> = ({
         {/* Why Open-Weight AI Matters */}
         <div className="bg-white/5 rounded-2xl p-4 border border-white/10 backdrop-blur-md mb-6">
           <h4 className="text-xs uppercase tracking-wider text-white/80 font-semibold mb-2 flex items-center gap-2">
-            <Shield className="w-3.5 h-3.5 text-emerald-400" />
+            <Shield className="w-3.5 h-3.5 text-white/70" />
             Why Open Models Matter Here
           </h4>
           <p className="text-xs text-white/60 leading-relaxed font-light">

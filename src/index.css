@@ -7,8 +7,8 @@
 @layer base {
   body {
     font-family: var(--font-sans);
-    background-color: #0B0E0D;
-    color: #F3EFE6;
+    background-color: #000000;
+    color: #ffffff;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -43,7 +43,7 @@
 
 /* Frosted glass panel variant with dark tint for high-contrast readability */
 .liquid-glass-card {
-  background: rgba(14, 22, 18, 0.65);
+  background: rgba(17, 17, 17, 0.65);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.12);

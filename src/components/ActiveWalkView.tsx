@@ -82,7 +82,7 @@ export const ActiveWalkView: React.FC<ActiveWalkViewProps> = ({
             className="flex flex-col items-center w-full"
           >
             {/* Pocket instruction */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold mb-6 animate-pulse backdrop-blur-md">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-white/80 text-xs font-semibold mb-6 animate-pulse backdrop-blur-md">
               <Smartphone className="w-4 h-4" />
               <span>Put your phone in your pocket</span>
             </div>
@@ -121,7 +121,7 @@ export const ActiveWalkView: React.FC<ActiveWalkViewProps> = ({
             className="liquid-glass rounded-3xl p-8 sm:p-12 border border-white/20 backdrop-blur-2xl shadow-2xl flex flex-col items-center text-center max-w-md w-full"
           >
             <div className="w-16 h-16 rounded-2xl bg-white/15 text-white flex items-center justify-center mb-5 backdrop-blur-md">
-              <Bell className="w-8 h-8 animate-bounce text-emerald-400" />
+              <Bell className="w-8 h-8 animate-bounce text-white/80" />
             </div>
 
             <h2 className="text-3xl font-normal text-white mb-2">

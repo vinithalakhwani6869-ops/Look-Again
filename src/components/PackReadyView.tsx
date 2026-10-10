@@ -49,8 +49,8 @@ export const PackReadyView: React.FC<PackReadyViewProps> = ({
                 <span>Preset, not AI-generated</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 rounded-full font-mono text-[11px]">
-                <Sparkles className="w-3 h-3 text-emerald-400" />
+              <span className="inline-flex items-center gap-1.5 text-white/80 bg-white/5 border border-white/15 px-3 py-1 rounded-full font-mono text-[11px]">
+                <Sparkles className="w-3 h-3 text-white/70" />
                 <span>AI: {pack.modelUsed || 'qwen3:4b'}</span>
               </span>
             )}
@@ -89,8 +89,8 @@ export const PackReadyView: React.FC<PackReadyViewProps> = ({
         </div>
 
         {/* Offline Cache Assurance */}
-        <div className="flex items-center gap-2 text-xs text-emerald-400 font-light">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="flex items-center gap-2 text-xs text-white/70 font-light">
+          <CheckCircle2 className="w-4 h-4 text-white/70 shrink-0" />
           <span>
             Pack is cached on your device. You can lock your screen or walk outside without internet.
           </span>
