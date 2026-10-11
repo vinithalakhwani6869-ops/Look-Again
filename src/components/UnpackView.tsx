@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { WalkPack, CheckResult, JournalEntry, OllamaHealthStatus, FocusType } from '../types';
 import { generateAISummary } from '../services/api';
-import { BookOpen, Sparkles, ArrowRight, Loader2, RefreshCw } from 'lucide-react';
+import { buildJournalText, SaveJournalResult } from '../services/storage';
+import { BookOpen, Sparkles, ArrowRight, Loader2, RefreshCw, Download, AlertTriangle } from 'lucide-react';
 
 interface UnpackViewProps {
   pack: WalkPack;
@@ -13,7 +14,7 @@ interface UnpackViewProps {
   reflections: Record<string, string>;
   ollamaStatus: OllamaHealthStatus | null;
   pastTendenciesSummary: string;
-  onSaveToJournal: (entry: JournalEntry) => void;
+  onSaveToJournal: (entry: JournalEntry) => Promise<SaveJournalResult>;
   onOpenOllamaModal: () => void;
 }
 
@@ -32,6 +33,10 @@ export const UnpackView: React.FC<UnpackViewProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationElapsed, setGenerationElapsed] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const pendingEntryRef = useRef<JournalEntry | null>(null);
 
   const [aiSummary, setAiSummary] = useState<{
     journalText: string;
@@ -127,9 +132,9 @@ export const UnpackView: React.FC<UnpackViewProps> = ({
     }
   }, []);
 
-  const handleSave = () => {
+  const buildEntry = (): JournalEntry => {
     const summaryToSave = aiSummary || generateFallbackSynthesis();
-    const entry: JournalEntry = {
+    return {
       id: `entry-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       createdAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
@@ -143,7 +148,58 @@ export const UnpackView: React.FC<UnpackViewProps> = ({
       reflections,
       aiSummary: summaryToSave,
     };
-    onSaveToJournal(entry);
+  };
+
+  const handleSave = async () => {
+    if (isSaving) return;
+    const entry = buildEntry();
+    pendingEntryRef.current = entry;
+    setSaveError(null);
+    setIsSaving(true);
+    try {
+      const result = await onSaveToJournal(entry);
+      if (!result.ok) {
+        // The entry is kept in memory (and visible in the journal UI), but the
+        // write to this browser failed. Tell the user and offer Retry + Download.
+        setSaveError(result.error || 'This entry could not be saved to this browser.');
+      }
+    } catch {
+      setSaveError('This entry could not be saved to this browser. Your walk notes are still here.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRetrySave = async () => {
+    const entry = pendingEntryRef.current;
+    if (!entry || isSaving) return;
+    setSaveError(null);
+    setIsSaving(true);
+    try {
+      const result = await onSaveToJournal(entry);
+      if (!result.ok) {
+        setSaveError(result.error || 'This entry could not be saved to this browser.');
+      }
+    } catch {
+      setSaveError('This entry could not be saved to this browser.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDownloadEntry = () => {
+    const entry = pendingEntryRef.current || buildEntry();
+    const text = buildJournalText([entry], []);
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const now = new Date();
+    const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    a.href = url;
+    a.download = `look-again-walk-${date}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -176,6 +232,25 @@ export const UnpackView: React.FC<UnpackViewProps> = ({
               Elapsed: {generationElapsed}s
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Visible AI error / busy message (keeps the fallback summary usable). */}
+      {errorMsg && !isGenerating && (
+        <div className="rounded-2xl border border-amber-300/30 bg-amber-400/10 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
+          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-300 mt-0.5" />
+          <p className="text-xs text-white/85 leading-relaxed flex-1 font-light">
+            {errorMsg}
+          </p>
+          {isOllamaReady && (
+            <button
+              onClick={handleRunOllamaUnpack}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition-all cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Retry with local AI
+            </button>
+          )}
         </div>
       )}
 
@@ -296,14 +371,56 @@ export const UnpackView: React.FC<UnpackViewProps> = ({
           </div>
         )}
 
+        {/* Save failure banner: entry is kept in memory and recoverable. */}
+        {saveError && (
+          <div className="rounded-2xl border border-amber-300/30 bg-amber-400/10 p-4 flex flex-col gap-3 border-t-0">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-300 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-xs font-medium text-white">{saveError}</p>
+                <p className="text-[11px] text-white/60 mt-1 font-light">
+                  Your walk notes are kept in memory and will not be lost on this screen.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={handleRetrySave}
+                disabled={isSaving}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                Retry save
+              </button>
+              <button
+                onClick={handleDownloadEntry}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 text-white border border-white/20 hover:bg-white/20 text-xs font-medium transition-all cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download as text
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Action button */}
         <div className="pt-4 flex flex-col sm:flex-row gap-3 border-t border-white/10">
           <button
             onClick={handleSave}
-            className="flex-1 flex items-center justify-center gap-2.5 py-4 px-6 rounded-2xl bg-white text-black text-base font-semibold hover:bg-white/90 active:scale-95 transition-all shadow-xl cursor-pointer group"
+            disabled={isSaving}
+            className="flex-1 flex items-center justify-center gap-2.5 py-4 px-6 rounded-2xl bg-white text-black text-base font-semibold hover:bg-white/90 active:scale-95 transition-all shadow-xl cursor-pointer group disabled:opacity-50"
           >
-            <span>Save to Private Field Journal</span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            {isSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Saving…</span>
+              </>
+            ) : (
+              <>
+                <span>Save to Private Field Journal</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </>
+            )}
           </button>
 
           {isOllamaReady && !isGenerating && (

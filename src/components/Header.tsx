@@ -80,7 +80,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => onNavigate('journal')}
             className={`flex items-center gap-1.5 text-xs font-medium px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer backdrop-blur-md ${
-              currentScreen === 'journal' || currentScreen === 'entry_detail'
+              currentScreen === 'journal'
                 ? 'bg-white/20 text-white border-white/30 shadow-inner'
                 : 'bg-white/5 text-white/80 border-white/10 hover:bg-white/10 hover:text-white'
             }`}
@@ -90,7 +90,7 @@ export const Header: React.FC<HeaderProps> = ({
             {journalCount > 0 && (
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                  currentScreen === 'journal' || currentScreen === 'entry_detail'
+                  currentScreen === 'journal'
                     ? 'bg-white/30 text-white'
                     : 'bg-white/10 text-white/90'
                 }`}

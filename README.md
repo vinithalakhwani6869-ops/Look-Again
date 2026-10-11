@@ -21,10 +21,10 @@ Most people move through their everyday neighborhoods, parks, and campuses witho
 ## 2. Open-Weight Model & Architecture
 
 - **Default Model:** `qwen3:4b` (Apache 2.0 License, developed by Alibaba Qwen Team)
-- **Local Engine:** [Ollama](https://ollama.com/) running on localhost (`http://localhost:11434`)
+- **Local Engine:** [Ollama](https://ollama.com/) at `OLLAMA_URL` — defaults to localhost (`http://localhost:11434`), so by default nothing leaves your machine
 - **Backend:** Node.js + Express (serving API & proxying Ollama behind `0.0.0.0:3000`)
-- **Frontend:** React + Vite + Tailwind CSS (mobile-first PWA)
-- **Storage:** IndexedDB / LocalStorage (zero cloud transmission of private memories)
+- **Frontend:** React + Vite + Tailwind CSS (mobile-first responsive web app)
+- **Storage:** browser `localStorage` only (no cloud database, no IndexedDB)
 
 ---
 
@@ -84,12 +84,13 @@ Open your browser to:
 http://localhost:3000
 ```
 
-To run the production build instead:
+To run the production build instead (serves the built frontend and `/api` from one port):
 
 ```powershell
-npm run build
-$env:NODE_ENV="production"; npm start
+npm run start:prod
 ```
+
+`start:prod` builds the frontend and starts the server with `NODE_ENV=production`. It is written as a small Node script so it works unchanged in Windows PowerShell, Command Prompt, macOS, and Linux.
 
 ---
 
@@ -109,9 +110,11 @@ Because the Express server binds to `0.0.0.0:3000`, you can access LOOK AGAIN di
 
 ---
 
-## 5. Offline Capabilities vs. Needs-Ollama Matrix
+## 5. Works Without Ollama vs. Needs Local Ollama
 
-| Feature | 100% Offline (Phone in Pocket) | Needs Local Ollama (`qwen3:4b`) |
+The app itself is served by the Express server over the network (there is no offline app shell or service worker). The table below describes what still works when Ollama is not running.
+
+| Feature | Works Without Ollama (on this device) | Needs Local Ollama (`qwen3:4b`) |
 | :--- | :---: | :---: |
 | **Observation Walk Timers & Chime** | ✅ Yes (runs in background) | ❌ No |
 | **Curated Preset Pack Library** | ✅ Yes (instant, deterministic) | ❌ No |
@@ -155,11 +158,25 @@ Because the Express server binds to `0.0.0.0:3000`, you can access LOOK AGAIN di
 
 ---
 
----
-
 ## 7. Privacy & Ethics Approach
 
-1. **No External APIs or Cloud Models:** Your journal entries are your unfiltered thoughts and observations. They never leave your device.
-2. **No People-Watching:** Prompts focus on light, soundscapes, textures, architectural rooflines, cast shadows, and micro-cracks. Never stranger surveillance.
-3. **No Photo Identification:** We do not ask users to snap photos or classify species. The human is the direct observer and the judge.
-4. **No Gamification:** There are no scoreboards, streaks, percentage grades, or badges. Curiosity is its own reward.
+1. **Your journal stays in your browser:** Journal entries are stored only in your browser's `localStorage`. Nothing is copied to a cloud database.
+2. **Where AI requests go:** Journal summaries, Field Stories, and Echo are sent from the server to the Ollama instance at `OLLAMA_URL`. It defaults to `http://localhost:11434`, which keeps everything on your own machine. If you point `OLLAMA_URL` at a remote host, that text leaves your machine — `/api/health` reports whether the endpoint is `local/private` or `remote`, and the app says so in the AI-engine dialog.
+3. **No cloud models:** The app refuses to send journal-derived text to a model whose name marks it as a cloud model (a `:cloud`/`-cloud` tag). Cloud-model configuration disables summaries, Field Stories, and Echo instead of sending your notes away.
+4. **No People-Watching:** Prompts focus on light, soundscapes, textures, architectural rooflines, cast shadows, and micro-cracks. Never stranger surveillance.
+5. **No Photo Identification:** We do not ask users to snap photos or classify species. The human is the direct observer and the judge.
+6. **No Gamification:** There are no scoreboards, streaks, percentage grades, or badges. Curiosity is its own reward.
+
+---
+
+## 8. Running a Public Live Demo (Tunnel)
+
+The app can be exposed to the internet through a tunnel (for example, Cloudflare Tunnel) so judges can use the real local AI. When you do:
+
+- **Run production mode:** `npm run start:prod` serves the built frontend and `/api` from the same origin and port, with SPA fallback to `index.html` for non-API routes.
+- **Rate limiting:** `/api` is limited per IP (default 60 requests/minute; set `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_MS`).
+- **Body size limit:** request bodies are capped (default `100kb`; set `BODY_LIMIT`).
+- **One generation at a time:** Ollama work is serialized. Extra requests wait in a small queue (default `AI_QUEUE_MAX=5`); beyond that, clients receive a friendly "The local AI is busy, try again in a minute." message and the UI offers a retry while keeping your data intact.
+- **CORS:** only same-origin, localhost, and private-LAN origins are allowed by default; add more with the comma-separated `CORS_ORIGINS` env var.
+- **Privacy notice:** when the app is opened from a non-local hostname, a dismissible banner explains that AI runs on the developer's machine and to avoid sensitive details. It never appears on localhost.
+- **Model warm-up:** the server warms the model on start and keeps it loaded (`keep_alive`) between requests.

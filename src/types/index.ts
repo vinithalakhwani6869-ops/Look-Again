@@ -114,8 +114,7 @@ export type AppScreen =
   | 'unpack'
   | 'post_save'
   | 'echo'
-  | 'journal'
-  | 'entry_detail';
+  | 'journal';
 
 export interface OllamaHealthStatus {
   status: 'ok' | 'unavailable';
@@ -130,4 +129,7 @@ export interface OllamaHealthStatus {
   cloud?: boolean;
   // License of the active model, sourced from backend config when known.
   modelLicense?: string;
+  // True when OLLAMA_URL points at localhost/loopback or a private LAN address.
+  // False means AI requests leave this machine.
+  ollamaLocal?: boolean;
 }

@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useSyncExternalStore } from 'react';
+import { AlertTriangle, X } from 'lucide-react';
 import { 
   AppScreen, WalkPack, JournalEntry, CheckResult, 
   OllamaHealthStatus, StoryState, EchoRecord 
 } from './types';
-import { 
-  getJournalEntries, saveJournalEntry, updateJournalEntry, 
-  deleteJournalEntry, deleteAllJournalEntries, getStoredActiveWalk, 
+import {
+  getJournalEntries, saveJournalEntry, updateJournalEntry,
+  deleteJournalEntry, deleteAllJournalEntries, getStoredActiveWalk,
   saveStoredActiveWalk, StoredActiveWalk, computePastTendenciesSummary,
-  getDemoMode, setDemoMode 
+  getDemoMode, setDemoMode, consumeStorageIssue, SaveJournalResult,
 } from './services/storage';
 import {
   subscribeStory, getStory, requestChapter, processQueue, retryChapter, clearStory,
@@ -16,6 +17,7 @@ import { getEchoCandidate } from './services/echo';
 import { checkOllamaHealth } from './services/api';
 import { Header } from './components/Header';
 import { CinematicHome } from './components/CinematicHome';
+import { PublicDemoNotice } from './components/PublicDemoNotice';
 import { PackSetupView } from './components/PackSetupView';
 import { PackReadyView } from './components/PackReadyView';
 import { ActiveWalkView } from './components/ActiveWalkView';
@@ -28,11 +30,32 @@ import { EchoView } from './components/EchoView';
 import { JournalView } from './components/JournalView';
 import { OllamaGuideModal } from './components/OllamaGuideModal';
 
+// Compact dismissible banner for storage warnings (e.g. a save failed or
+// corrupt data was backed up). Floating over every screen.
+function StorageNotice({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+  return (
+    <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-1.5rem)] max-w-lg">
+      <div className="flex items-start gap-3 rounded-2xl border border-amber-300/30 bg-black/85 backdrop-blur-xl p-3.5 text-white shadow-2xl">
+        <AlertTriangle className="w-4 h-4 shrink-0 text-amber-300 mt-0.5" />
+        <p className="text-[11px] sm:text-xs font-light leading-relaxed flex-1 text-white/85">{message}</p>
+        <button
+          onClick={onDismiss}
+          aria-label="Dismiss notice"
+          className="text-white/50 hover:text-white transition-colors cursor-pointer shrink-0"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('home');
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [ollamaStatus, setOllamaStatus] = useState<OllamaHealthStatus | null>(null);
   const [isOllamaModalOpen, setIsOllamaModalOpen] = useState<boolean>(false);
+  const [storageNotice, setStorageNotice] = useState<string | null>(null);
 
   // Field Stories state is stored on-device and shared through a tiny store.
   const story = useSyncExternalStore(subscribeStory, getStory, getStory);
@@ -55,6 +78,10 @@ export default function App() {
   useEffect(() => {
     getJournalEntries().then((saved) => {
       setEntries(saved);
+      // Surface any warning produced while reading (e.g. corrupt data that was
+      // backed up) instead of silently starting from an empty journal.
+      const issue = consumeStorageIssue();
+      if (issue) setStorageNotice(issue);
     });
 
     setDemoModeState(getDemoMode());
@@ -158,17 +185,24 @@ export default function App() {
     setCurrentScreen('unpack');
   };
 
-  const handleSaveToJournal = async (entry: JournalEntry) => {
-    await saveJournalEntry(entry);
-    saveStoredActiveWalk(null);
-    setActivePack(null);
+  const handleSaveToJournal = async (entry: JournalEntry): Promise<SaveJournalResult> => {
+    const result = await saveJournalEntry(entry);
     const updatedEntries = await getJournalEntries();
     setEntries(updatedEntries);
+    consumeStorageIssue();
+    if (!result.ok) {
+      // Write failed: keep the entry in memory (UnpackView shows Retry/Download);
+      // do NOT advance to post_save or clear the in-progress walk.
+      return result;
+    }
+    saveStoredActiveWalk(null);
+    setActivePack(null);
     setLastSavedEntryId(entry.id);
     // A saved walk is the ONLY thing that can unlock a chapter. Generation runs
     // in the background and never blocks the UI.
     requestChapter(entry);
     setCurrentScreen('post_save');
+    return result;
   };
 
   const handleToggleDemo = (enabled: boolean) => {
@@ -183,7 +217,8 @@ export default function App() {
       return;
     }
     const updated: JournalEntry = { ...candidate.entry, echo };
-    await updateJournalEntry(updated);
+    const result = await updateJournalEntry(updated);
+    if (!result.ok) setStorageNotice(result.error || null);
     const refreshed = await getJournalEntries();
     setEntries(refreshed);
     setCurrentScreen('journal');
@@ -199,14 +234,16 @@ export default function App() {
       ...candidate.entry,
       echo: { completedAt: new Date().toISOString(), answer: '', skipped: true },
     };
-    await updateJournalEntry(updated);
+    const result = await updateJournalEntry(updated);
+    if (!result.ok) setStorageNotice(result.error || null);
     const refreshed = await getJournalEntries();
     setEntries(refreshed);
     setCurrentScreen('journal');
   };
 
   const handleUpdateEntry = async (updated: JournalEntry) => {
-    await updateJournalEntry(updated);
+    const result = await updateJournalEntry(updated);
+    if (!result.ok) setStorageNotice(result.error || null);
     const refreshed = await getJournalEntries();
     setEntries(refreshed);
   };
@@ -230,14 +267,18 @@ export default function App() {
   // in isolation guarantees its fixed header/headline/bottom never overlap other screens.
   if (currentScreen === 'home') {
     return (
-      <CinematicHome
-        ollamaStatus={ollamaStatus}
-        onNavigate={setCurrentScreen}
-        echoDaysAgo={echoCandidate ? echoCandidate.daysAgo : null}
-        onStartEcho={() => setCurrentScreen('echo')}
-        demoMode={demoMode}
-        onToggleDemo={handleToggleDemo}
-      />
+      <>
+        {storageNotice && <StorageNotice message={storageNotice} onDismiss={() => setStorageNotice(null)} />}
+        <CinematicHome
+          ollamaStatus={ollamaStatus}
+          onNavigate={setCurrentScreen}
+          echoDaysAgo={echoCandidate ? echoCandidate.daysAgo : null}
+          onStartEcho={() => setCurrentScreen('echo')}
+          demoMode={demoMode}
+          onToggleDemo={handleToggleDemo}
+        />
+        <PublicDemoNotice />
+      </>
     );
   }
 
@@ -245,6 +286,9 @@ export default function App() {
     <main className="relative w-full min-h-[115dvh] overflow-x-hidden flex flex-col items-center font-sans selection:bg-white/20 selection:text-white">
       {/* Plain solid black background for every non-Home screen. */}
       <div className="fixed inset-0 z-0 bg-black" />
+
+      {/* Storage warnings (e.g. corrupt data backed up, save failed). */}
+      {storageNotice && <StorageNotice message={storageNotice} onDismiss={() => setStorageNotice(null)} />}
 
       {/* Content Wrapper */}
       <div className="relative z-10 w-full max-w-7xl flex flex-col items-center min-h-[115dvh] justify-between px-4 sm:px-6 py-6">
@@ -389,6 +433,9 @@ export default function App() {
         status={ollamaStatus}
         onStatusUpdate={(newStatus) => setOllamaStatus(newStatus)}
       />
+
+      {/* Public-demo privacy notice (only on non-local hostnames). */}
+      <PublicDemoNotice />
     </main>
   );
 }

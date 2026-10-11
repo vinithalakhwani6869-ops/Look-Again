@@ -61,6 +61,7 @@ export const OllamaGuideModal: React.FC<OllamaGuideModalProps> = ({
   const isConnected = status?.status === 'ok';
   const hasModel = isConnected && status?.modelAvailable;
   const isCloud = Boolean(status?.cloud);
+  const isRemote = status?.ollamaLocal === false;
   const license = status?.modelLicense || getKnownModelLicense(status?.targetModel) || 'see README';
 
   return (
@@ -94,7 +95,11 @@ export const OllamaGuideModal: React.FC<OllamaGuideModalProps> = ({
           <div>
             <h2 className="text-xl font-medium text-white">Open-Weight AI Engine</h2>
             <p className="text-xs text-white/50 font-light">
-              {isCloud ? 'A cloud model is configured — not private' : 'Ollama backend running locally on your machine'}
+              {isCloud
+                ? 'A cloud model is configured — not private'
+                : isRemote
+                ? 'Ollama endpoint is on a remote machine — AI requests leave this machine'
+                : 'Ollama backend running locally on your machine'}
             </p>
           </div>
         </div>
@@ -157,6 +162,16 @@ export const OllamaGuideModal: React.FC<OllamaGuideModalProps> = ({
             </div>
           )}
 
+          {isRemote && !isCloud && (
+            <div className="mt-3.5 pt-3.5 border-t border-white/10 text-xs font-light text-white/80 flex items-start gap-2">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>
+                Remote endpoint: AI requests (summaries, Field Stories, Echo) are sent to{' '}
+                <span className="font-mono">{status?.ollamaUrl}</span>, which is not this machine.
+              </span>
+            </div>
+          )}
+
           {isConnected && (
             <div className="mt-3.5 pt-3.5 border-t border-white/10 text-xs font-light">
               <span className="text-white/60">Active model: </span>
@@ -178,9 +193,9 @@ export const OllamaGuideModal: React.FC<OllamaGuideModalProps> = ({
             Why Open Models Matter Here
           </h4>
           <p className="text-xs text-white/60 leading-relaxed font-light">
-            Your journal, Echo, and Field Stories are processed by a model running on your own machine,
-            so your notes are not sent to an AI service. Because the model is open-weight, you can
-            swap it for another one.
+            {isRemote
+              ? 'Your journal, Echo, and Field Stories are processed by the model at the configured Ollama endpoint. With the default localhost endpoint, notes never leave this machine. Because the model is open-weight, you can swap it for another one.'
+              : 'Your journal, Echo, and Field Stories are processed by a model running on your own machine, so your notes are not sent to an AI service. Because the model is open-weight, you can swap it for another one.'}
           </p>
         </div>
 

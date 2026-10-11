@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { AlertTriangle, Trash2, X } from 'lucide-react';
 
 interface DeleteConfirmModalProps {
@@ -18,16 +18,86 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   onConfirm,
   onCancel,
 }) => {
+  const titleId = useId();
+  const messageId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Remember what had focus so we can return to it when the dialog closes.
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+
+    // Initial focus lands on the safe action (Cancel).
+    const focusTimer = window.setTimeout(() => {
+      cancelRef.current?.focus();
+    }, 0);
+
+    const getFocusable = () => {
+      if (!dialogRef.current) return [];
+      return Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCancel();
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+
+      // Focus trap: keep Tab cycling within the dialog.
+      const focusable = getFocusable();
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const current = document.activeElement as HTMLElement | null;
+
+      if (event.shiftKey) {
+        if (current === first || !current || !dialogRef.current?.contains(current)) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (current === last || !current || !dialogRef.current?.contains(current)) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      window.removeEventListener('keydown', handleKeyDown);
+      previouslyFocused.current?.focus?.();
+    };
+  }, [isOpen, onCancel]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-150">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      aria-describedby={messageId}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-150"
+    >
       <div
+        ref={dialogRef}
         className="liquid-glass rounded-3xl border border-white/20 max-w-md w-full p-6 sm:p-8 shadow-2xl relative text-white backdrop-blur-3xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onCancel}
+          aria-label="Close"
           className="absolute top-5 right-5 p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
@@ -38,18 +108,19 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-lg font-medium text-white">
+            <h3 id={titleId} className="text-lg font-medium text-white">
               {title}
             </h3>
           </div>
         </div>
 
-        <p className="text-xs sm:text-sm text-white/70 leading-relaxed mb-6 font-light">
+        <p id={messageId} className="text-xs sm:text-sm text-white/70 leading-relaxed mb-6 font-light">
           {message}
         </p>
 
         <div className="flex items-center justify-end gap-3">
           <button
+            ref={cancelRef}
             onClick={onCancel}
             className="px-4 py-2.5 rounded-xl text-xs font-medium text-white/70 hover:bg-white/10 transition-colors cursor-pointer"
           >

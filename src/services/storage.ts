@@ -18,8 +18,35 @@ export interface StoredActiveWalk {
   reflections?: Record<string, string>;
 }
 
+export interface SaveJournalResult {
+  ok: boolean;
+  error?: string;
+}
+
 // Memory cache for immediate sync access
 let cachedEntries: JournalEntry[] | null = null;
+
+// A human-readable note about the most recent storage problem. Consumed by the
+// UI (via consumeStorageIssue) so the user is never silently told "saved"
+// when a write failed or corrupt data was merely discarded.
+let storageIssue: string | null = null;
+
+export function consumeStorageIssue(): string | null {
+  const issue = storageIssue;
+  storageIssue = null;
+  return issue;
+}
+
+function describeWriteError(e: unknown): string {
+  const err = e as any;
+  if (err?.name === 'QuotaExceededError' || err?.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+    return 'Storage is full. Your entry was kept in memory but could not be saved to this browser.';
+  }
+  if (err?.name === 'SecurityError') {
+    return 'This browser blocked storage access, so the entry could not be saved to disk.';
+  }
+  return 'The journal could not be saved to this browser. Your entry was kept in memory.';
+}
 
 export async function getJournalEntries(): Promise<JournalEntry[]> {
   if (cachedEntries !== null) {
@@ -33,6 +60,22 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
       return cachedEntries || [];
     }
   } catch (e) {
+    // Corrupt data: back it up under a recoverable key, tell the user, and
+    // return an empty list WITHOUT silently overwriting on the next save.
+    try {
+      const rawValue = localStorage.getItem(STORAGE_KEY_JOURNAL);
+      if (rawValue !== null) {
+        const backupKey = `${STORAGE_KEY_JOURNAL}-corrupt-${Date.now()}`;
+        localStorage.setItem(backupKey, rawValue);
+        storageIssue =
+          `Your journal data was not readable and was backed up under "${backupKey}" so ` +
+          'nothing is lost. New walks start from an empty journal.';
+      }
+    } catch {
+      storageIssue =
+        'Your journal data in this browser was not readable and could not be backed up either. ' +
+        'You can restore it by opening the Developer Tools and copying the "lookagain_journal_entries_v1" value.';
+    }
     console.error('Failed to read journal from localStorage:', e);
   }
 
@@ -40,7 +83,7 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
   return [];
 }
 
-export async function saveJournalEntry(entry: JournalEntry): Promise<void> {
+export async function saveJournalEntry(entry: JournalEntry): Promise<SaveJournalResult> {
   const entries = await getJournalEntries();
   const existingIndex = entries.findIndex((e) => e.id === entry.id);
 
@@ -50,15 +93,20 @@ export async function saveJournalEntry(entry: JournalEntry): Promise<void> {
     entries.unshift(entry);
   }
 
+  // Always keep the in-memory copy so a failed write never loses the entry.
   cachedEntries = [...entries];
   try {
     localStorage.setItem(STORAGE_KEY_JOURNAL, JSON.stringify(entries));
+    storageIssue = null;
+    return { ok: true };
   } catch (e) {
+    storageIssue = describeWriteError(e);
     console.error('Failed to write journal to localStorage:', e);
+    return { ok: false, error: storageIssue };
   }
 }
 
-export async function updateJournalEntry(entry: JournalEntry): Promise<void> {
+export async function updateJournalEntry(entry: JournalEntry): Promise<SaveJournalResult> {
   return saveJournalEntry(entry);
 }
 

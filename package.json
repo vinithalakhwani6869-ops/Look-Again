@@ -4,13 +4,19 @@
   "version": "0.0.0",
   "description": "LOOK AGAIN — an open-source, privacy-first outdoor attention companion powered by local open-weight models via Ollama.",
   "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build",
     "start": "tsx server.ts",
+    "start:prod": "node scripts/start-prod.mjs",
     "preview": "vite preview",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true});require('fs').rmSync('server.js',{force:true})\"",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:safety": "tsx scripts/pack-safety.test.ts"
   },
   "dependencies": {
     "@fontsource-variable/arimo": "^5.3.0",
@@ -33,7 +39,6 @@
     "@types/node": "^22.14.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "autoprefixer": "^10.4.21",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2"
   }

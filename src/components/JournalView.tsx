@@ -127,7 +127,36 @@ ${entry.checkResults.map((r, i) => `${i + 1}. **${r.question}**
 ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
 `;
 
-    navigator.clipboard.writeText(md);
+    // Prefer the async Clipboard API, but fall back to a hidden textarea +
+    // execCommand for older/insecure-context browsers.
+    const copyFallback = () => {
+      const textarea = document.createElement('textarea');
+      textarea.value = md;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      let ok = false;
+      try {
+        ok = document.execCommand('copy');
+      } catch {
+        ok = false;
+      }
+      document.body.removeChild(textarea);
+      return ok;
+    };
+
+    const copyViaClipboard = async () => {
+      try {
+        await navigator.clipboard.writeText(md);
+        return true;
+      } catch {
+        return copyFallback();
+      }
+    };
+
+    copyViaClipboard();
     setCopiedNotification(true);
     setTimeout(() => setCopiedNotification(false), 2500);
   };
