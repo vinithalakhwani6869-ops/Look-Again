@@ -118,13 +118,18 @@ Because the Express server binds to `0.0.0.0:3000`, you can access LOOK AGAIN di
 | **Hidden Check Questions & Memory Recall** | ✅ Yes | ❌ No |
 | **Look Again Reality Verification** | ✅ Yes | ❌ No |
 | **Field Journal Local Storage & Edits** | ✅ Yes (stays in browser) | ❌ No |
-| **JSON Export & Import** | ✅ Yes | ❌ No |
+| **Readable Export (.txt)** | ✅ Yes | ❌ No |
 | **Dynamic Generative Walk Packs** | ❌ Offline fallback available | ✅ Yes |
 | **Field Note Synthesis & Tendencies Note** | ❌ Deterministic local summary | ✅ Yes |
 | **Field Stories chapter (fiction)** | ❌ Queued on-device until AI returns | ✅ Yes |
 | **Echo next-day memory sort** | ✅ Manual tap-through fallback | ✅ Yes |
 
 > **Note:** If Ollama is offline or unavailable, LOOK AGAIN immediately allows choosing from its curated library of preset missions and synthesizes journal entries using a deterministic local fallback. It never claims AI succeeded when it did not. A pending Field Stories chapter is queued on your device and written once the local AI is available — never faked; and an Echo falls back to a plain manual view instead of pretending the AI sorted anything.
+
+### Exporting your journal
+
+- **Export** writes a readable plain-text copy (`look-again-field-journal-YYYY-MM-DD.txt`, UTF-8) of all walks in chronological order, including each walk's prompt, recall, memory checks, surprises, reflections, AI summary, Echo results, and the Field Stories chapters — formatted for a human to read, with no JSON.
+- **There is no Import.** Data is stored only in this browser, so clearing your browser data (or "Clear All" in the app) deletes it permanently and irreversibly.
 
 ---
 

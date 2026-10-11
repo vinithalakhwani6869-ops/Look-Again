@@ -2,12 +2,25 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { JournalEntry, StoryState } from '../types';
 import { 
-  BookOpen, Trash2, Edit3, ArrowLeft, Download, Upload, 
+  BookOpen, Trash2, Edit3, ArrowLeft, Download, 
   Search, Sparkles, Check, Calendar, Clock, Share2, Save,
   Feather, RefreshCw, Loader2, WifiOff
 } from 'lucide-react';
-import { exportJournalAsJson, importJournalFromJson } from '../services/storage';
+import { buildJournalText } from '../services/storage';
+import { FocusFilterDropdown, FocusOption } from './FocusFilterDropdown';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
+
+const FOCUS_OPTIONS: FocusOption[] = [
+  { value: 'all', label: 'All Focuses' },
+  { value: 'surprise', label: 'Surprise' },
+  { value: 'sounds', label: 'Sounds' },
+  { value: 'patterns', label: 'Patterns' },
+  { value: 'movement', label: 'Movement' },
+  { value: 'light', label: 'Light & Shadow' },
+  { value: 'above', label: 'Above Eye Level' },
+  { value: 'periphery', label: 'Periphery' },
+  { value: 'details', label: 'Small Details' },
+];
 
 interface JournalViewProps {
   entries: JournalEntry[];
@@ -40,7 +53,6 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
-  const [importStatus, setImportStatus] = useState<string | null>(null);
   const [copiedNotification, setCopiedNotification] = useState(false);
 
   const selectedEntry = entries.find((e) => e.id === selectedEntryId) || null;
@@ -81,31 +93,18 @@ export const JournalView: React.FC<JournalViewProps> = ({
     setIsEditing(false);
   };
 
-  const handleExportJson = () => {
-    const jsonStr = exportJournalAsJson(entries);
-    const blob = new Blob([jsonStr], { type: 'application/json' });
+  const handleExportText = () => {
+    const text = buildJournalText(entries, story.chapters);
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
     a.href = url;
-    a.download = `look-again-field-journal-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `look-again-field-journal-${date}.txt`;
     a.click();
     URL.revokeObjectURL(url);
-  };
-
-  const handleImportJsonFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      const count = await importJournalFromJson(text);
-      setImportStatus(`Successfully imported ${count} journal entries.`);
-      setTimeout(() => setImportStatus(null), 4000);
-      window.location.reload();
-    } catch (err: any) {
-      setImportStatus(`Import failed: ${err.message}`);
-      setTimeout(() => setImportStatus(null), 4000);
-    }
   };
 
   const handleCopyMarkdown = (entry: JournalEntry) => {
@@ -147,25 +146,14 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
 
         <div className="flex items-center gap-2">
           <button
-            onClick={handleExportJson}
+            onClick={handleExportText}
             disabled={entries.length === 0}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 text-white/80 text-xs hover:bg-white/15 transition-all cursor-pointer disabled:opacity-40 backdrop-blur-md"
-            title="Export all entries to JSON backup"
+            title="Export a readable .txt copy of this journal"
           >
             <Download className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Export</span>
           </button>
-
-          <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 text-white/80 text-xs hover:bg-white/15 transition-all cursor-pointer backdrop-blur-md">
-            <Upload className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Import</span>
-            <input
-              type="file"
-              accept=".json"
-              onChange={handleImportJsonFile}
-              className="hidden"
-            />
-          </label>
 
           {entries.length > 0 && (
             <button
@@ -179,13 +167,6 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
           )}
         </div>
       </div>
-
-      {/* Import status notification banner */}
-      {importStatus && (
-        <div className="p-3.5 mb-4 rounded-2xl bg-white/5 text-white/80 text-xs font-medium border border-white/15 backdrop-blur-md">
-          {importStatus}
-        </div>
-      )}
 
       {/* Copied notification toast */}
       {copiedNotification && (
@@ -209,19 +190,16 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
 
       {/* Story so far — only appears once at least one chapter exists */}
       {!selectedEntry && orderedChapters.length > 0 && (
-        <div className="mb-6 rounded-3xl border border-white/15 bg-white/5 p-5 sm:p-6 backdrop-blur-2xl">
-          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-white/60 mb-1">
+        <div className="mb-8">
+          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-white/60">
             <Feather className="w-3.5 h-3.5 text-white/70" />
             Story so far
           </div>
-          <p className="text-[11px] text-white/45 mb-4 font-light">Fiction inspired by your walk</p>
+          <p className="text-[11px] text-white/45 mt-1 mb-2 font-light">Fiction inspired by your walk</p>
 
-          <div className="space-y-2.5">
+          <div className="divide-y divide-white/10">
             {orderedChapters.map((ch, i) => (
-              <details
-                key={ch.id}
-                className="group rounded-2xl bg-white/5 border border-white/10 px-4 py-3 backdrop-blur-md"
-              >
+              <details key={ch.id} className="group py-3.5">
                 <summary className="cursor-pointer list-none flex items-center justify-between gap-3">
                   <span className="text-sm text-white/90 font-medium">
                     <span className="font-mono text-white/40 mr-2">{i + 1}.</span>
@@ -243,7 +221,7 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
             {pendingStoryItems.map((item) => (
               <div
                 key={item.entryId}
-                className="rounded-2xl bg-white/5 border border-dashed border-white/15 px-4 py-3 flex items-start gap-3 backdrop-blur-md"
+                className="py-3.5 flex items-start gap-3"
               >
                 {item.offline || item.status === 'error' ? (
                   <WifiOff className="w-4 h-4 mt-0.5 shrink-0 text-white/60" />
@@ -364,30 +342,30 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
           </div>
 
           {/* Observation Mission Prompt */}
-          <div className="bg-white/5 p-5 rounded-2xl border border-white/10 backdrop-blur-md">
-            <div className="text-[10px] font-semibold uppercase tracking-widest text-white/50 mb-1">
+          <div className="pt-1">
+            <div className="text-xs font-semibold uppercase tracking-widest text-white/60 mb-1.5">
               Observation Prompt
             </div>
-            <p className="text-sm sm:text-base italic text-white/90 font-light">
+            <p className="text-sm sm:text-base italic text-white/90 font-light border-l-2 border-white/15 pl-3">
               "{selectedEntry.pack.lookPrompt}"
             </p>
           </div>
 
           {/* AI Field Journal Narrative */}
           {selectedEntry.aiSummary && (
-            <div className="space-y-4">
+            <div className="space-y-5 border-t border-white/10 pt-5">
               <div>
                 <div className="text-xs font-semibold uppercase tracking-widest text-white/60 mb-2 flex items-center gap-2">
                   <BookOpen className="w-3.5 h-3.5 text-white/70" />
                   Field Journal Synthesis
                 </div>
-                <div className="text-sm text-white/90 leading-relaxed bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md font-light">
+                <p className="text-sm text-white/90 leading-relaxed font-light">
                   {selectedEntry.aiSummary.journalText}
-                </div>
+                </p>
               </div>
 
               {/* Tendencies Note */}
-              <div className="bg-white/5 border border-white/10 p-5 rounded-2xl backdrop-blur-md">
+              <div className="border-t border-white/10 pt-4">
                 <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-1.5 flex items-center gap-2">
                   <Sparkles className="w-3.5 h-3.5 text-white/70" />
                   Tendencies Observation (Qualitative, no scores)
@@ -396,7 +374,7 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
                   {selectedEntry.aiSummary.tendencyNote}
                 </p>
                 {selectedEntry.aiSummary.suggestedNextFocus && (
-                  <div className="text-xs text-white/70 font-medium mt-3 pt-3 border-t border-white/10">
+                  <div className="text-xs text-white/70 font-medium mt-3">
                     Recommended next focus: <strong className="capitalize text-white">{selectedEntry.aiSummary.suggestedNextFocus}</strong>
                   </div>
                 )}
@@ -417,22 +395,22 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
                 className="w-full text-xs sm:text-sm p-3.5 rounded-2xl bg-white/5 border border-white/15 focus:border-white focus:outline-hidden text-white backdrop-blur-md"
               />
             ) : (
-              <p className="text-xs sm:text-sm text-white/80 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md italic font-light">
+              <p className="text-xs sm:text-sm text-white/80 italic font-light whitespace-pre-line">
                 {selectedEntry.recallFreeText || 'No initial free recall recorded.'}
               </p>
             )}
           </div>
 
           {/* Memory Checks & Verdicts */}
-          <div className="border-t border-white/10 pt-5">
-            <div className="text-xs font-semibold uppercase tracking-widest text-white/60 mb-3">
+          <div className="border-t border-white/10 pt-1">
+            <div className="text-xs font-semibold uppercase tracking-widest text-white/60 mb-1.5">
               Memory Checks & Reality
             </div>
-            <div className="space-y-2.5">
+            <div className="divide-y divide-white/10">
               {selectedEntry.checkResults.map((r, idx) => (
                 <div
                   key={idx}
-                  className="text-xs p-3.5 rounded-2xl bg-white/5 border border-white/10 flex flex-col gap-1.5 backdrop-blur-md"
+                  className="text-xs py-3.5 flex flex-col gap-1.5"
                 >
                   <div className="font-medium text-white">
                     <span className="font-mono text-white/40 mr-2">{idx + 1}.</span>
@@ -473,7 +451,7 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
                 className="w-full text-xs sm:text-sm p-3.5 rounded-2xl bg-white/5 border border-white/15 focus:border-white focus:outline-hidden text-white backdrop-blur-md"
               />
             ) : (
-              <p className="text-xs sm:text-sm text-white/80 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md font-light">
+              <p className="text-xs sm:text-sm text-white/80 font-light whitespace-pre-line">
                 {selectedEntry.surpriseNote || 'None recorded'}
               </p>
             )}
@@ -488,16 +466,16 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
               </div>
 
               {selectedEntry.echo.skipped ? (
-                <p className="text-xs sm:text-sm text-white/70 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md font-light">
+                <p className="text-xs sm:text-sm text-white/70 font-light">
                   This Echo was skipped.
                 </p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <p className="text-[11px] font-mono text-white/45">
                     Recorded {new Date(selectedEntry.echo.completedAt).toLocaleString()}
                   </p>
                   {selectedEntry.echo.answer && (
-                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl backdrop-blur-md">
+                    <div className="border-t border-white/10 pt-3">
                       <div className="text-[10px] font-semibold uppercase tracking-widest text-white/50 mb-1">
                         What came back
                       </div>
@@ -509,8 +487,8 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
 
                   {selectedEntry.echo.result && (
                     <>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-white/10 pt-3">
+                        <div className="py-1">
                           <div className="text-[10px] font-semibold uppercase tracking-widest text-white/80 mb-2">
                             Still with you
                           </div>
@@ -524,7 +502,7 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
                             </ul>
                           )}
                         </div>
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md">
+                        <div className="py-1">
                           <div className="text-[10px] font-semibold uppercase tracking-widest text-white/50 mb-2">
                             Faded
                           </div>
@@ -538,7 +516,7 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
                             </ul>
                           )}
                         </div>
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md">
+                        <div className="py-1">
                           <div className="text-[10px] font-semibold uppercase tracking-widest text-white/70 mb-2">
                             Only came back now
                           </div>
@@ -554,7 +532,7 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
                         </div>
                       </div>
                       {selectedEntry.echo.result.note && (
-                        <p className="text-xs sm:text-sm text-white/80 leading-relaxed bg-white/5 border border-white/10 p-4 rounded-2xl backdrop-blur-md font-light">
+                        <p className="text-xs sm:text-sm text-white/80 leading-relaxed font-light">
                           {selectedEntry.echo.result.note}
                         </p>
                       )}
@@ -574,34 +552,25 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
         /* List of Entries */
         <div className="space-y-4">
           {/* Search & Filter Bar */}
-          <div className="flex flex-col sm:flex-row gap-2.5">
+          <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
             <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-white/40" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search journal entries..."
-                className="w-full text-xs sm:text-sm pl-10 pr-4 py-3 rounded-2xl bg-white/5 border border-white/15 focus:border-white focus:outline-hidden text-white placeholder:text-white/30 backdrop-blur-md"
+                className="w-full text-xs sm:text-sm pl-10 pr-4 py-2.5 rounded-2xl bg-white/5 border border-white/15 focus:border-white focus:outline-hidden text-white placeholder:text-white/30 backdrop-blur-md"
               />
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <select
+              <FocusFilterDropdown
                 value={filterFocus}
-                onChange={(e) => setFilterFocus(e.target.value)}
-                className="text-xs py-3 px-4 rounded-2xl bg-white/10 border border-white/15 text-white focus:outline-hidden backdrop-blur-md cursor-pointer"
-              >
-                <option value="all" className="bg-[#0a0a0a] text-white">All Focuses</option>
-                <option value="surprise" className="bg-[#0a0a0a] text-white">Surprise</option>
-                <option value="sounds" className="bg-[#0a0a0a] text-white">Sounds</option>
-                <option value="patterns" className="bg-[#0a0a0a] text-white">Patterns</option>
-                <option value="movement" className="bg-[#0a0a0a] text-white">Movement</option>
-                <option value="light" className="bg-[#0a0a0a] text-white">Light & Shadow</option>
-                <option value="above" className="bg-[#0a0a0a] text-white">Above Eye Level</option>
-                <option value="periphery" className="bg-[#0a0a0a] text-white">Periphery</option>
-                <option value="details" className="bg-[#0a0a0a] text-white">Small Details</option>
-              </select>
+                options={FOCUS_OPTIONS}
+                onChange={setFilterFocus}
+                ariaLabel="Filter journal entries by focus"
+              />
             </div>
           </div>
 
@@ -629,12 +598,12 @@ ${entry.surpriseNote ? `\n**Surprise:** "${entry.surpriseNote}"` : ''}
               No entries matched your search criteria.
             </div>
           ) : (
-            <div className="space-y-3.5">
+            <div className="divide-y divide-white/10 border-b border-white/10">
               {filteredEntries.map((entry) => (
                 <div
                   key={entry.id}
                   onClick={() => handleSelectEntry(entry)}
-                  className="liquid-glass rounded-2xl p-5 border border-white/10 hover:border-white/30 backdrop-blur-2xl transition-all cursor-pointer group shadow-lg hover:shadow-2xl"
+                  className="py-5 cursor-pointer group transition-colors"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">

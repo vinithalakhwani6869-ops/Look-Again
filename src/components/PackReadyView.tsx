@@ -66,7 +66,7 @@ export const PackReadyView: React.FC<PackReadyViewProps> = ({
             {pack.title}
           </h1>
 
-          <div className="p-6 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md">
+          <div className="border-l-2 border-white/20 pl-5">
             <p className="text-lg sm:text-2xl text-white font-light italic leading-relaxed">
               "{pack.lookPrompt}"
             </p>
@@ -74,7 +74,7 @@ export const PackReadyView: React.FC<PackReadyViewProps> = ({
         </div>
 
         {/* Locked Check Questions Notice */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-start gap-3 backdrop-blur-md">
+        <div className="flex items-start gap-3 border-t border-white/10 pt-5">
           <div className="w-8 h-8 rounded-xl bg-white/10 text-white flex items-center justify-center shrink-0 mt-0.5">
             <Lock className="w-4 h-4" />
           </div>

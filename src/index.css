@@ -5,10 +5,17 @@
 }
 
 @layer base {
+  html,
+  body {
+    /* Guard against accidental horizontal scroll from long unbroken strings. */
+    overflow-x: hidden;
+  }
+
   body {
     font-family: var(--font-sans);
     background-color: #000000;
     color: #ffffff;
+    overflow-wrap: break-word;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -20,6 +27,16 @@
   [role="button"],
   a[href] {
     cursor: pointer;
+  }
+}
+
+/* Touch devices only: guarantee a comfortable 44px tap height. Desktop is
+   unaffected because this media query never matches a fine pointer. */
+@media (pointer: coarse) {
+  button:not(:disabled),
+  [role="button"],
+  a[href] {
+    min-height: 44px;
   }
 }
 

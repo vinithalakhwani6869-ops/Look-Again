@@ -46,7 +46,7 @@ export const PostSaveView: React.FC<PostSaveViewProps> = ({
         </div>
 
         {isFirstWalk && (
-          <div className="rounded-2xl border border-white/15 bg-white/5 p-5 flex items-start gap-3 backdrop-blur-md">
+          <div className="flex items-start gap-3 border-t border-white/10 pt-5">
             <Clock className="w-4 h-4 mt-0.5 shrink-0 text-white/70" />
             <p className="text-sm text-white/85 font-light">
               Come back tomorrow. Your first Echo will be waiting.
@@ -56,7 +56,7 @@ export const PostSaveView: React.FC<PostSaveViewProps> = ({
 
         {/* Field Stories: one fictional chapter per saved walk, generated locally */}
         {(chapter || queueItem) && (
-          <div className="rounded-3xl border border-white/15 bg-white/5 p-5 sm:p-6 backdrop-blur-md space-y-3">
+          <div className="border-t border-white/10 pt-5 space-y-4">
             <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-white/60">
               <Feather className="w-3.5 h-3.5 text-white/70" />
               Fiction inspired by your walk

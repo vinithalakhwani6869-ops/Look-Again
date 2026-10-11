@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
-import { Lock, X } from 'lucide-react';
+import { Lock, Menu, X } from 'lucide-react';
 import { AppScreen, OllamaHealthStatus } from '../types';
 import { formatEchoDayLabel } from '../services/echo';
 
@@ -16,6 +16,9 @@ interface CinematicHomeProps {
 const NAV_LINK_CLASS =
   'text-[10px] sm:text-[11px] font-medium tracking-[0.12em] text-white/90 hover:text-white px-2.5 sm:px-4 py-1.5 rounded-full transition-colors duration-200';
 
+const MOBILE_MENU_LINK_CLASS =
+  'w-full text-left text-xs font-medium tracking-[0.12em] text-white/90 hover:text-white px-3 py-3 rounded-xl hover:bg-white/10 transition-colors duration-200';
+
 export const CinematicHome: React.FC<CinematicHomeProps> = ({
   ollamaStatus,
   onNavigate,
@@ -26,6 +29,7 @@ export const CinematicHome: React.FC<CinematicHomeProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   // Respect prefers-reduced-motion: no fade, no parallax.
   const [reduceMotion] = useState(
@@ -80,6 +84,11 @@ export const CinematicHome: React.FC<CinematicHomeProps> = ({
     }
   };
 
+  const navigate = (screen: AppScreen) => {
+    setShowMenu(false);
+    onNavigate(screen);
+  };
+
   const statusText =
     ollamaStatus === null
       ? 'CHECKING...'
@@ -92,7 +101,7 @@ export const CinematicHome: React.FC<CinematicHomeProps> = ({
 
   return (
     <div
-      className="relative min-h-screen bg-black text-white overflow-x-hidden"
+      className="relative flex min-h-dvh flex-col bg-black text-white overflow-x-hidden lg:block"
       style={{ fontFamily: "'Barlow', sans-serif" }}
     >
       {/* Fixed full-screen video background with parallax + fallback colour */}
@@ -111,16 +120,17 @@ export const CinematicHome: React.FC<CinematicHomeProps> = ({
       </div>
 
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 px-4 py-6 sm:px-10 sm:py-8 flex justify-between items-center">
-        <div className="text-[15px] sm:text-[17px] font-semibold tracking-tight shrink-0">
+      <header className="fixed top-0 left-0 right-0 z-50 px-4 py-5 sm:px-10 sm:py-8 flex justify-between items-center gap-3">
+        <div className="text-[14px] sm:text-[17px] font-semibold tracking-tight shrink-0">
           LOOK AGAIN
         </div>
 
-        <nav className="liquid-glass rounded-full px-2 py-2 flex items-center gap-1">
-          <button type="button" onClick={() => onNavigate('pack_setup')} className={NAV_LINK_CLASS}>
+        {/* Desktop / tablet navigation pill */}
+        <nav className="liquid-glass rounded-full px-2 py-2 hidden sm:flex items-center gap-1">
+          <button type="button" onClick={() => navigate('pack_setup')} className={NAV_LINK_CLASS}>
             NEW WALK
           </button>
-          <button type="button" onClick={() => onNavigate('journal')} className={NAV_LINK_CLASS}>
+          <button type="button" onClick={() => navigate('journal')} className={NAV_LINK_CLASS}>
             JOURNAL
           </button>
           <button type="button" onClick={() => setShowHowItWorks(true)} className={NAV_LINK_CLASS}>
@@ -128,85 +138,123 @@ export const CinematicHome: React.FC<CinematicHomeProps> = ({
           </button>
         </nav>
 
+        {/* Compact mobile menu */}
+        <div className="sm:hidden relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowMenu((v) => !v)}
+            aria-label="Open menu"
+            aria-expanded={showMenu}
+            className="liquid-glass rounded-full p-2.5 inline-flex items-center justify-center text-white"
+          >
+            {showMenu ? <X size={18} /> : <Menu size={18} />}
+          </button>
+
+          {showMenu && (
+            <div className="absolute right-0 top-full mt-2 z-50 liquid-glass rounded-2xl p-2 flex flex-col gap-1 min-w-[180px]">
+              <button type="button" onClick={() => navigate('pack_setup')} className={MOBILE_MENU_LINK_CLASS}>
+                NEW WALK
+              </button>
+              <button type="button" onClick={() => navigate('journal')} className={MOBILE_MENU_LINK_CLASS}>
+                JOURNAL
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMenu(false);
+                  setShowHowItWorks(true);
+                }}
+                className={MOBILE_MENU_LINK_CLASS}
+              >
+                HOW IT WORKS
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Status pill: shown from md up so it never crowds small screens */}
         <div
-          className="liquid-glass rounded-full px-5 py-2.5 text-[11px] font-medium tracking-[0.12em] text-white/90 hidden sm:inline-flex items-center"
+          className="liquid-glass rounded-full px-5 py-2.5 text-[11px] font-medium tracking-[0.12em] text-white/90 hidden md:inline-flex items-center"
           title="Local AI status"
         >
           {statusText}
         </div>
       </header>
 
-      {/* Hero headline */}
+      {/* Content stack: flows and scrolls below lg; fixed cinematic layers at lg+ */}
       <div
-        className={`fixed left-0 right-0 z-20 flex flex-col items-center text-center ${transitionClass} ${revealClass}`}
-        style={{ top: '120px' }}
+        className="relative z-20 flex flex-1 flex-col items-center justify-center gap-10 px-4 pt-28 text-center lg:block lg:flex-none lg:p-0 lg:gap-0"
+        style={{ paddingBottom: 'max(3rem, env(safe-area-inset-bottom))' }}
       >
-        <h1
-          className="font-normal"
-          style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: 'clamp(40px, 5.4vw, 72px)',
-            lineHeight: 1.1,
-            letterSpacing: '-0.02em',
-          }}
-        >
-          <span className="block text-white">There&apos;s more around you</span>
-          <span className="block" style={{ color: 'rgba(255,255,255,0.55)' }}>
-            than you notice.
-          </span>
-        </h1>
-      </div>
-
-      {/* Echo notice: only shown when a next-day memory test is available.
-          Placed in the calm middle band so it never overlaps the fixed header,
-          headline, or bottom block at desktop or 375px width. */}
-      {echoDaysAgo !== null && onStartEcho && (
+        {/* Hero headline */}
         <div
-          className="fixed left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-30 w-[calc(100%-2rem)] max-w-md px-0 pointer-events-none"
-          aria-live="polite"
+          className={`lg:fixed lg:left-0 lg:right-0 lg:top-[120px] lg:z-20 lg:flex lg:flex-col lg:items-center lg:text-center ${transitionClass} ${revealClass}`}
         >
-          <div className="liquid-glass rounded-3xl p-5 sm:p-6 flex flex-col items-center text-center gap-3 pointer-events-auto">
-            <p className="text-[13px] sm:text-sm text-white/90 font-light leading-relaxed">
-              Echo is ready: what do you still remember about your walk?
-            </p>
-            <p className="text-[11px] tracking-[0.12em] uppercase text-white/50 font-medium">
-              {formatEchoDayLabel(echoDaysAgo)}
-            </p>
-            <button
-              type="button"
-              onClick={onStartEcho}
-              className="bg-white text-black text-[13px] font-medium rounded-full px-6 py-2.5 transition-transform duration-200 motion-safe:hover:scale-[1.03] active:scale-[0.97]"
-            >
-              Remember it
-            </button>
-          </div>
+          <h1
+            className="font-normal"
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 'clamp(28px, 5.4vw, 72px)',
+              lineHeight: 1.1,
+              letterSpacing: '-0.02em',
+            }}
+          >
+            <span className="block text-white">There&apos;s more around you</span>
+            <span className="block" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              than you notice.
+            </span>
+          </h1>
         </div>
-      )}
 
-      {/* Bottom block */}
-      <div
-        className={`fixed bottom-14 left-0 right-0 z-20 flex flex-col items-center gap-6 ${transitionClass} ${
-          reduceMotion ? '' : 'delay-300'
-        } ${revealClass}`}
-      >
-        <p className="max-w-[620px] text-[15px] leading-relaxed text-center px-6">
-          <span className="text-white">
-            Short outdoor walks that train you to notice what you usually miss, then check your memory
-            against what was really there.
-          </span>
-        </p>
+        {/* Echo notice: only shown when a next-day memory test is available. */}
+        {echoDaysAgo !== null && onStartEcho && (
+          <div
+            className="w-full max-w-md pointer-events-none lg:fixed lg:left-1/2 lg:-translate-x-1/2 lg:top-1/2 lg:-translate-y-1/2 lg:z-30 lg:w-[calc(100%-2rem)]"
+            aria-live="polite"
+          >
+            <div className="liquid-glass rounded-3xl p-5 sm:p-6 flex flex-col items-center text-center gap-3 pointer-events-auto">
+              <p className="text-[15px] sm:text-sm text-white/90 font-light leading-relaxed">
+                Echo is ready: what do you still remember about your walk?
+              </p>
+              <p className="text-[11px] tracking-[0.12em] uppercase text-white/50 font-medium">
+                {formatEchoDayLabel(echoDaysAgo)}
+              </p>
+              <button
+                type="button"
+                onClick={onStartEcho}
+                className="bg-white text-black text-[13px] font-medium rounded-full px-6 py-2.5 transition-transform duration-200 motion-safe:hover:scale-[1.03] active:scale-[0.97]"
+              >
+                Remember it
+              </button>
+            </div>
+          </div>
+        )}
 
-        <button
-          type="button"
-          onClick={() => onNavigate('pack_setup')}
-          className="bg-white text-black text-[15px] font-medium rounded-full px-8 py-3.5 transition-transform duration-200 hover:scale-[1.03] hover:shadow-[0_0_32px_4px_rgba(255,255,255,0.2)] active:scale-[0.97]"
+        {/* Bottom block */}
+        <div
+          className={`flex flex-col items-center gap-6 lg:fixed lg:bottom-14 lg:left-0 lg:right-0 lg:z-20 ${transitionClass} ${
+            reduceMotion ? '' : 'delay-300'
+          } ${revealClass}`}
         >
-          Begin noticing
-        </button>
+          <p className="max-w-[620px] text-[15px] leading-relaxed text-center px-6">
+            <span className="text-white">
+              Short outdoor walks that train you to notice what you usually miss, then check your memory
+              against what was really there.
+            </span>
+          </p>
 
-        <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.14em] text-white/70">
-          <Lock size={13} strokeWidth={1.5} />
-          <span>YOUR JOURNAL STAYS ON YOUR DEVICE.</span>
+          <button
+            type="button"
+            onClick={() => navigate('pack_setup')}
+            className="bg-white text-black text-[15px] font-medium rounded-full px-8 py-3.5 transition-transform duration-200 hover:scale-[1.03] hover:shadow-[0_0_32px_4px_rgba(255,255,255,0.2)] active:scale-[0.97]"
+          >
+            Begin noticing
+          </button>
+
+          <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.14em] text-white/70">
+            <Lock size={13} strokeWidth={1.5} />
+            <span>YOUR JOURNAL STAYS ON YOUR DEVICE.</span>
+          </div>
         </div>
       </div>
 
@@ -217,7 +265,7 @@ export const CinematicHome: React.FC<CinematicHomeProps> = ({
           onClick={() => setShowHowItWorks(false)}
         >
           <div
-            className="liquid-glass rounded-3xl max-w-lg w-full p-8 text-left"
+            className="liquid-glass rounded-3xl max-w-lg w-full max-h-[90dvh] overflow-y-auto p-6 sm:p-8 text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -237,7 +285,7 @@ export const CinematicHome: React.FC<CinematicHomeProps> = ({
               </button>
             </div>
 
-            <ol className="space-y-3 text-[14px] leading-relaxed text-white/80">
+            <ol className="space-y-3 text-[16px] sm:text-[14px] leading-relaxed text-white/80">
               <li>
                 <strong className="text-white">Look.</strong> Choose a short walk and one clear focus,
                 then pocket your phone and step outside.
@@ -260,7 +308,7 @@ export const CinematicHome: React.FC<CinematicHomeProps> = ({
                 so the next-day Echo can be demonstrated on demand. Off by default.
                 It never bypasses the Field Stories unlock rule. */}
             <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between gap-4">
-              <div>
+              <div className="min-w-0">
                 <div className="text-[13px] font-medium text-white">Demo: pretend a day has passed</div>
                 <div className="text-[11px] text-white/50 mt-0.5 font-light">
                   Lets you test the next-day Echo right away.
@@ -285,7 +333,7 @@ export const CinematicHome: React.FC<CinematicHomeProps> = ({
               </button>
             </div>
 
-            <p className="mt-5 text-[13px] leading-relaxed text-white/55">
+            <p className="mt-5 text-[16px] sm:text-[13px] leading-relaxed text-white/55">
               Everything stays on your device. No cameras, no accounts, and no cloud AI — your journal
               never leaves your browser.
             </p>

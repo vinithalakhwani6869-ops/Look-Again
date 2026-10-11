@@ -242,16 +242,12 @@ export default function App() {
   }
 
   return (
-    <main className="relative w-full min-h-[115vh] overflow-x-hidden flex flex-col items-center font-sans selection:bg-white/20 selection:text-white">
-      {/* Calm CSS-only monochrome background (no external media) */}
-      <div className="fixed inset-0 z-[0] bg-black" />
-      <div className="fixed inset-0 z-[0] bg-[radial-gradient(circle_at_25%_15%,rgba(255,255,255,0.06),transparent_55%),radial-gradient(circle_at_75%_85%,rgba(255,255,255,0.04),transparent_60%)]" />
+    <main className="relative w-full min-h-[115dvh] overflow-x-hidden flex flex-col items-center font-sans selection:bg-white/20 selection:text-white">
+      {/* Plain solid black background for every non-Home screen. */}
+      <div className="fixed inset-0 z-0 bg-black" />
 
-      {/* Subtle overlay for optimal content readability */}
-      <div className="fixed inset-0 bg-black/30 z-[1] pointer-events-none" />
-
-      {/* Content Wrapper on top of background (z-10) */}
-      <div className="relative z-10 w-full max-w-7xl flex flex-col items-center min-h-[115vh] justify-between px-4 sm:px-6 py-6">
+      {/* Content Wrapper */}
+      <div className="relative z-10 w-full max-w-7xl flex flex-col items-center min-h-[115dvh] justify-between px-4 sm:px-6 py-6">
         {/* Top Header */}
         <Header
           currentScreen={currentScreen}
