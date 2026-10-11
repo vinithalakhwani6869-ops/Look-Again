@@ -166,17 +166,3 @@ The app itself is served by the Express server over the network (there is no off
 4. **No People-Watching:** Prompts focus on light, soundscapes, textures, architectural rooflines, cast shadows, and micro-cracks. Never stranger surveillance.
 5. **No Photo Identification:** We do not ask users to snap photos or classify species. The human is the direct observer and the judge.
 6. **No Gamification:** There are no scoreboards, streaks, percentage grades, or badges. Curiosity is its own reward.
-
----
-
-## 8. Running a Public Live Demo (Tunnel)
-
-The app can be exposed to the internet through a tunnel (for example, Cloudflare Tunnel) so judges can use the real local AI. When you do:
-
-- **Run production mode:** `npm run start:prod` serves the built frontend and `/api` from the same origin and port, with SPA fallback to `index.html` for non-API routes.
-- **Rate limiting:** `/api` is limited per IP (default 60 requests/minute; set `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_MS`).
-- **Body size limit:** request bodies are capped (default `100kb`; set `BODY_LIMIT`).
-- **One generation at a time:** Ollama work is serialized. Extra requests wait in a small queue (default `AI_QUEUE_MAX=5`); beyond that, clients receive a friendly "The local AI is busy, try again in a minute." message and the UI offers a retry while keeping your data intact.
-- **CORS:** only same-origin, localhost, and private-LAN origins are allowed by default; add more with the comma-separated `CORS_ORIGINS` env var.
-- **Privacy notice:** when the app is opened from a non-local hostname, a dismissible banner explains that AI runs on the developer's machine and to avoid sensitive details. It never appears on localhost.
-- **Model warm-up:** the server warms the model on start and keeps it loaded (`keep_alive`) between requests.
