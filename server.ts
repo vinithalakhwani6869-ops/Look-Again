@@ -22,11 +22,36 @@ function matchesModelName(target: string, installed: string): boolean {
   return targetTagged === installed;
 }
 
+// A model is treated as NOT local when its name ends with ":cloud"/"-cloud"
+// or carries "cloud" as a tag. Such models route to a hosted endpoint, so
+// journal-derived content must never be sent to them.
+function isCloudModel(name: string): boolean {
+  const lower = name.trim().toLowerCase();
+  if (lower.endsWith(':cloud') || lower.endsWith('-cloud')) return true;
+  const tag = lower.includes(':') ? lower.slice(lower.indexOf(':') + 1) : '';
+  return tag === 'cloud' || tag.split('-').includes('cloud');
+}
+
+// License of the active model. Known models are mapped; anything else falls
+// back to a pointer to the README rather than a guess.
+function getModelLicense(name: string): string {
+  const base = name.trim().toLowerCase().split(':')[0].replace(/-cloud$/, '');
+  if (base.startsWith('qwen')) return 'Apache 2.0';
+  if (base.startsWith('llama')) return 'Llama 3 Community License';
+  if (base.startsWith('mistral') || base.startsWith('mixtral')) return 'Apache 2.0';
+  if (base.startsWith('gemma')) return 'Gemma Terms of Use';
+  if (base.startsWith('phi')) return 'MIT';
+  if (base.startsWith('deepseek')) return 'MIT';
+  return 'see README';
+}
+
 app.use(express.json({ limit: '2mb' }));
 
 // Health check endpoint
 app.get('/api/health', async (_req: Request, res: Response) => {
   const startTime = Date.now();
+  const cloud = isCloudModel(OLLAMA_MODEL);
+  const modelLicense = getModelLicense(OLLAMA_MODEL);
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 4000);
@@ -43,6 +68,8 @@ app.get('/api/health', async (_req: Request, res: Response) => {
         targetModel: OLLAMA_MODEL,
         modelAvailable: false,
         installedModels: [],
+        cloud,
+        modelLicense,
         message: `Ollama replied with status ${response.status}`,
         responseTimeMs: Date.now() - startTime,
       });
@@ -58,7 +85,11 @@ app.get('/api/health', async (_req: Request, res: Response) => {
       targetModel: OLLAMA_MODEL,
       modelAvailable,
       installedModels,
-      message: modelAvailable
+      cloud,
+      modelLicense,
+      message: cloud
+        ? `WARNING: model '${OLLAMA_MODEL}' is a cloud model. Journal summaries, Echo, and Field Stories are disabled and will not be sent to it.`
+        : modelAvailable
         ? `Connected to Ollama. Model ${OLLAMA_MODEL} is ready.`
         : `Connected to Ollama, but model '${OLLAMA_MODEL}' was not found in installed models. Run 'ollama run ${OLLAMA_MODEL}'.`,
       responseTimeMs: Date.now() - startTime,
@@ -71,6 +102,8 @@ app.get('/api/health', async (_req: Request, res: Response) => {
       targetModel: OLLAMA_MODEL,
       modelAvailable: false,
       installedModels: [],
+      cloud,
+      modelLicense,
       message: isConnRefused
         ? `Ollama is not running at ${OLLAMA_URL}. Start it with 'ollama run ${OLLAMA_MODEL}'.`
         : `Could not reach Ollama: ${err.message || 'Connection failed'}`,
@@ -302,6 +335,13 @@ ${recentCategories ? `- Recent user sessions covered: ${recentCategories}. Offer
 
 // POST /api/summary
 app.post('/api/summary', async (req: Request, res: Response) => {
+  if (isCloudModel(OLLAMA_MODEL)) {
+    return res.status(403).json({
+      error: 'Journal summaries are disabled because the configured model is a cloud model. Your journal text is never sent to it.',
+      code: 'CLOUD_MODEL_REFUSED',
+    });
+  }
+
   const { pack, recallFreeText = '', checkResults = [], surpriseNote = '', reflections = {}, pastTendenciesSummary = '' } = req.body;
 
   if (!pack || !checkResults) {
@@ -419,6 +459,13 @@ ${pastTendenciesSummary ? `Past sessions tendency context: ${pastTendenciesSumma
 // Input:  { observations: string[], synopsis: string, lastLine: string }
 // Output: { chapter: { title, chapter, cliffhanger, synopsisUpdate, modelUsed, generatedAt } }
 app.post('/api/story', async (req: Request, res: Response) => {
+  if (isCloudModel(OLLAMA_MODEL)) {
+    return res.status(403).json({
+      error: 'Field Stories are disabled because the configured model is a cloud model. Your walks are never sent to it.',
+      code: 'CLOUD_MODEL_REFUSED',
+    });
+  }
+
   const { observations = [], synopsis = '', lastLine = '' } = req.body;
 
   const obsText = (Array.isArray(observations) ? observations : [])
@@ -542,6 +589,13 @@ Write the next chapter as one paragraph of 150-220 words. Ground every clue in t
 // Sorts the user's next-day recollection against the saved entry.
 // Returns three lists and a gentle note. Only uses real text from inputs.
 app.post('/api/echo', async (req: Request, res: Response) => {
+  if (isCloudModel(OLLAMA_MODEL)) {
+    return res.status(403).json({
+      error: 'Echo is disabled because the configured model is a cloud model. Your saved notes are never sent to it.',
+      code: 'CLOUD_MODEL_REFUSED',
+    });
+  }
+
   const { savedText = '', echoAnswer = '' } = req.body;
 
   const systemPrompt = `You are sorting the user's next-day memory for "LOOK AGAIN".

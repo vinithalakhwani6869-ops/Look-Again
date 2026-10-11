@@ -194,7 +194,6 @@ export const CinematicHome: React.FC<CinematicHomeProps> = ({
             Short outdoor walks that train you to notice what you usually miss, then check your memory
             against what was really there.
           </span>
-          <span className="text-white/55"> Your journal never leaves your device.</span>
         </p>
 
         <button

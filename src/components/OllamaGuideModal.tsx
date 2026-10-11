@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, RefreshCw, CheckCircle2, AlertTriangle, Terminal, Shield, Cpu } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, RefreshCw, CheckCircle2, AlertTriangle, Shield, Cpu } from 'lucide-react';
 import { OllamaHealthStatus } from '../types';
 import { checkOllamaHealth } from '../services/api';
 
@@ -10,6 +10,19 @@ interface OllamaGuideModalProps {
   onStatusUpdate: (newStatus: OllamaHealthStatus) => void;
 }
 
+// Fallback license map used only when the backend does not supply one.
+function getKnownModelLicense(model?: string): string | null {
+  if (!model) return null;
+  const base = model.trim().toLowerCase().split(':')[0].replace(/-cloud$/, '');
+  if (base.startsWith('qwen')) return 'Apache 2.0';
+  if (base.startsWith('llama')) return 'Llama 3 Community License';
+  if (base.startsWith('mistral') || base.startsWith('mixtral')) return 'Apache 2.0';
+  if (base.startsWith('gemma')) return 'Gemma Terms of Use';
+  if (base.startsWith('phi')) return 'MIT';
+  if (base.startsWith('deepseek')) return 'MIT';
+  return null;
+}
+
 export const OllamaGuideModal: React.FC<OllamaGuideModalProps> = ({
   isOpen,
   onClose,
@@ -17,7 +30,21 @@ export const OllamaGuideModal: React.FC<OllamaGuideModalProps> = ({
   onStatusUpdate,
 }) => {
   const [isChecking, setIsChecking] = useState(false);
-  const [copiedCmd, setCopiedCmd] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Esc to close + move focus into the dialog when it opens.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    const focusTimer = window.setTimeout(() => dialogRef.current?.focus(), 0);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.clearTimeout(focusTimer);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -31,19 +58,23 @@ export const OllamaGuideModal: React.FC<OllamaGuideModalProps> = ({
     }
   };
 
-  const copyCommand = (cmd: string) => {
-    navigator.clipboard.writeText(cmd);
-    setCopiedCmd(true);
-    setTimeout(() => setCopiedCmd(false), 2000);
-  };
-
   const isConnected = status?.status === 'ok';
   const hasModel = isConnected && status?.modelAvailable;
+  const isCloud = Boolean(status?.cloud);
+  const license = status?.modelLicense || getKnownModelLicense(status?.targetModel) || 'see README';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-150">
-      <div 
-        className="liquid-glass rounded-3xl border border-white/20 max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-8 relative text-white backdrop-blur-3xl"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-150"
+      onClick={onClose}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Open-Weight AI Engine"
+        tabIndex={-1}
+        className="liquid-glass rounded-3xl border border-white/20 max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-8 relative text-white backdrop-blur-3xl outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -61,11 +92,9 @@ export const OllamaGuideModal: React.FC<OllamaGuideModalProps> = ({
             <Cpu className="w-5 h-5 text-white/70" />
           </div>
           <div>
-            <h2 className="text-xl font-medium text-white">
-              Open-Weight AI Engine & Guide
-            </h2>
+            <h2 className="text-xl font-medium text-white">Open-Weight AI Engine</h2>
             <p className="text-xs text-white/50 font-light">
-              Ollama backend running locally on your machine
+              {isCloud ? 'A cloud model is configured — not private' : 'Ollama backend running locally on your machine'}
             </p>
           </div>
         </div>
@@ -89,7 +118,9 @@ export const OllamaGuideModal: React.FC<OllamaGuideModalProps> = ({
               )}
               <div>
                 <div className="font-semibold text-sm text-white">
-                  {hasModel
+                  {isCloud
+                    ? 'Ollama Connected (Cloud model configured)'
+                    : hasModel
                     ? `Ollama Connected & ${status?.targetModel} Ready`
                     : isConnected
                     ? `Ollama Connected (Model ${status?.targetModel} missing)`
@@ -116,38 +147,28 @@ export const OllamaGuideModal: React.FC<OllamaGuideModalProps> = ({
             </button>
           </div>
 
-          {isConnected && status?.installedModels && status.installedModels.length > 0 && (
-            <div className="mt-3.5 pt-3.5 border-t border-white/10 text-xs font-light">
-              <span className="text-white/60">Installed models: </span>
-              <span className="font-mono font-medium text-white">
-                {status.installedModels.join(', ')}
+          {isCloud && (
+            <div className="mt-3.5 pt-3.5 border-t border-white/10 text-xs font-light text-white/80 flex items-start gap-2">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>
+                Cloud model: not private. Journal summaries, Echo, and Field Stories are disabled and
+                never sent to it.
               </span>
+            </div>
+          )}
+
+          {isConnected && (
+            <div className="mt-3.5 pt-3.5 border-t border-white/10 text-xs font-light">
+              <span className="text-white/60">Active model: </span>
+              <span className="font-mono font-medium text-white">{status?.targetModel}</span>
+              <span className="text-white/50"> · License: {license}</span>
             </div>
           )}
         </div>
 
-        {/* How to run Ollama */}
+        {/* Setup pointer */}
         <div className="mb-6">
-          <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
-            <Terminal className="w-4 h-4 text-white/70" />
-            Quick Setup in Terminal
-          </h3>
-          <p className="text-xs text-white/60 mb-2.5 leading-relaxed font-light">
-            Run this command in PowerShell or Terminal. Ollama will download the Apache 2.0 open-weight model (<code className="font-mono bg-white/10 px-1.5 py-0.5 rounded text-white text-[11px]">qwen3:4b</code>) and host it locally:
-          </p>
-
-          <div className="relative bg-black/60 text-white rounded-2xl p-4 font-mono text-xs flex items-center justify-between border border-white/10 shadow-inner">
-            <code className="text-white">ollama run qwen3:4b</code>
-            <button
-              onClick={() => copyCommand('ollama run qwen3:4b')}
-              className="text-[11px] bg-white/20 hover:bg-white/30 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-            >
-              {copiedCmd ? 'Copied!' : 'Copy'}
-            </button>
-          </div>
-          <p className="text-[11px] text-white/50 mt-2 font-light">
-            Tip: Runs completely on CPU (no GPU needed). Memory footprint is ~2.5 GB.
-          </p>
+          <p className="text-xs text-white/60 font-light">Setup steps are in the README.</p>
         </div>
 
         {/* Why Open-Weight AI Matters */}
@@ -157,7 +178,9 @@ export const OllamaGuideModal: React.FC<OllamaGuideModalProps> = ({
             Why Open Models Matter Here
           </h4>
           <p className="text-xs text-white/60 leading-relaxed font-light">
-            Observation journals contain raw, unedited personal memories. Running an open-weight model locally guarantees that your private thoughts never transit cloud APIs. Zero API costs, total offline sovereignty, and swappable models.
+            Your journal, Echo, and Field Stories are processed by a model running on your own machine,
+            so your notes are not sent to an AI service. Because the model is open-weight, you can
+            swap it for another one.
           </p>
         </div>
 

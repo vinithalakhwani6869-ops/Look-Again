@@ -125,4 +125,9 @@ export interface OllamaHealthStatus {
   installedModels: string[];
   message?: string;
   responseTimeMs?: number;
+  // True when the configured model is a cloud model (name ends with ":cloud"/
+  // "-cloud" or carries a "cloud" tag). Journal-derived content is refused for it.
+  cloud?: boolean;
+  // License of the active model, sourced from backend config when known.
+  modelLicense?: string;
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, BookOpen, Sparkles, Compass, AlertCircle, Wifi, CheckCircle2 } from 'lucide-react';
+import { BookOpen, Compass } from 'lucide-react';
 import { AppScreen, OllamaHealthStatus } from '../types';
 
 interface HeaderProps {
@@ -19,6 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const isOllamaReady = ollamaStatus?.status === 'ok' && ollamaStatus?.modelAvailable;
   const isOllamaConnectedNoModel = ollamaStatus?.status === 'ok' && !ollamaStatus?.modelAvailable;
+  const isCloud = Boolean(ollamaStatus?.cloud);
 
   return (
     <header className="sticky top-4 z-40 w-full max-w-7xl px-4 sm:px-6 mb-8">
@@ -26,26 +27,13 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Brand */}
         <button
           onClick={() => onNavigate('home')}
-          className="flex items-center gap-3 text-left group transition-all hover:opacity-90 cursor-pointer"
+          className="text-left group transition-all hover:opacity-90 cursor-pointer"
         >
-          <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/20 text-white flex items-center justify-center font-bold text-sm shadow-inner backdrop-blur-md">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="18"
-              height="18"
-              viewBox="0 0 256 256"
-              fill="currentColor"
-            >
-              <path d="M 4.688 136 C 68.373 136 120 187.627 120 251.312 C 120 252.883 119.967 254.445 119.905 256 L 0 256 L 0 136.096 C 1.555 136.034 3.117 136 4.688 136 Z M 251.312 136 C 252.883 136 254.445 136.034 256 136.096 L 256 256 L 136.095 256 C 136.032 254.438 136.001 252.875 136 251.312 C 136 187.627 187.627 136 251.312 136 Z M 119.905 0 C 119.967 1.555 120 3.117 120 4.688 C 120 68.373 68.373 120 4.687 120 C 3.117 120 1.555 119.967 0 119.905 L 0 0 Z M 256 119.905 C 254.445 119.967 252.883 120 251.312 120 C 187.627 120 136 68.373 136 4.687 C 136 3.117 136.033 1.555 136.095 0 L 256 0 Z" />
-            </svg>
+          <div className="font-sans font-semibold text-lg text-white leading-none tracking-wider">
+            LOOK AGAIN
           </div>
-          <div>
-            <div className="font-sans font-semibold text-lg text-white leading-none tracking-wider flex items-center gap-1.5">
-              LOOK AGAIN
-            </div>
-            <div className="text-[10px] tracking-widest uppercase text-white/50 font-medium mt-1">
-              Outdoor Attention
-            </div>
+          <div className="text-[10px] tracking-widest uppercase text-white/50 font-medium mt-1">
+            Outdoor Attention
           </div>
         </button>
 
@@ -61,11 +49,13 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
                 : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10'
             }`}
-            title="Local AI Engine Status"
+            title={isCloud ? 'Cloud model configured — not private' : 'Local AI Engine Status'}
           >
             <span
               className={`w-2 h-2 rounded-full inline-block ${
-                isOllamaReady
+                isCloud
+                  ? 'bg-white/50'
+                  : isOllamaReady
                   ? 'bg-white animate-pulse'
                   : isOllamaConnectedNoModel
                   ? 'border border-white/70 bg-transparent'
@@ -73,14 +63,16 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             />
             <span className="hidden sm:inline font-sans font-medium text-[11px]">
-              {isOllamaReady
+              {isCloud
+                ? 'Cloud model: not private'
+                : isOllamaReady
                 ? `${ollamaStatus?.targetModel}`
                 : isOllamaConnectedNoModel
                 ? 'Model needed'
                 : 'Offline / Presets'}
             </span>
             <span className="sm:hidden text-[11px] font-sans font-medium">
-              {isOllamaReady ? 'AI' : 'Local'}
+              {isCloud ? 'Cloud' : isOllamaReady ? 'AI' : 'Local'}
             </span>
           </button>
 
